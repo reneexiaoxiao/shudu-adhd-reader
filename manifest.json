@@ -1,0 +1,52 @@
+{
+  "manifest_version": 3,
+  "name": "舒读 · ADHD 网页阅读器",
+  "version": "0.3.4",
+  "description": "优化公众号、即刻、X/Twitter 与普通文章页，并为动态页面提供无侵入语义强调。",
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": [
+    "https://mp.weixin.qq.com/*",
+    "https://m.okjike.com/*",
+    "https://web.okjike.com/*",
+    "https://okjike.com/*",
+    "https://x.com/*",
+    "https://twitter.com/*"
+  ],
+  "action": {
+    "default_title": "舒读",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://mp.weixin.qq.com/*",
+        "https://m.okjike.com/*",
+        "https://web.okjike.com/*",
+        "https://okjike.com/*",
+        "https://x.com/*",
+        "https://twitter.com/*"
+      ],
+      "css": ["reader.css"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["fonts/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

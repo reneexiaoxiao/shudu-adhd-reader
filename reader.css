@@ -1,0 +1,339 @@
+:root {
+  --adhd-torch-fallback: "PingFang SC", "Hiragino Sans GB", system-ui, sans-serif;
+}
+
+@font-face {
+  font-family: "Shudu Sino Torch";
+  src: local("Sino-Torch"), local("中华薪火体"), url("fonts/中华薪火体.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  unicode-range: U+2E80-2FFF, U+3000-303F, U+31C0-31EF, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FE30-FE4F, U+FF00-FFEF;
+}
+
+:root.adhd-reader-enabled {
+  --adhd-content-width: 980px;
+  --adhd-site-width: 980px;
+  --adhd-font-size: 18px;
+  --adhd-list-font-size: clamp(15px, calc(var(--adhd-font-size) - 1px), 29px);
+  --adhd-heading-1-size: clamp(27px, calc(var(--adhd-font-size) + 12px), 44px);
+  --adhd-heading-2-size: clamp(24px, calc(var(--adhd-font-size) + 8px), 39px);
+  --adhd-heading-3-size: clamp(21px, calc(var(--adhd-font-size) + 5px), 35px);
+  --adhd-heading-4-size: clamp(19px, calc(var(--adhd-font-size) + 3px), 33px);
+  --adhd-line-height: 1.75;
+  --adhd-paragraph-gap: 0.68em;
+  --adhd-marker-color: rgba(250, 204, 21, 0.42);
+  --adhd-priority-color: rgba(250, 204, 21, 0.46);
+  --adhd-concept-color: rgba(96, 165, 250, 0.34);
+  --adhd-action-color: rgba(74, 222, 128, 0.34);
+  --adhd-evidence-color: rgba(192, 132, 252, 0.3);
+  --adhd-degree-color: rgba(251, 113, 133, 0.31);
+}
+
+:root.adhd-reader-enabled[data-adhd-marker="mint"] { --adhd-marker-color: rgba(74, 222, 128, 0.34); }
+:root.adhd-reader-enabled[data-adhd-marker="coral"] { --adhd-marker-color: rgba(251, 113, 133, 0.32); }
+:root.adhd-reader-enabled[data-adhd-marker="blue"] { --adhd-marker-color: rgba(96, 165, 250, 0.32); }
+
+:root.adhd-reader-enabled .adhd-reader-shell {
+  box-sizing: border-box !important;
+  inline-size: min(calc(100vw - 64px), var(--adhd-site-width)) !important;
+  max-inline-size: var(--adhd-site-width) !important;
+  margin-inline: auto !important;
+}
+
+:root.adhd-reader-enabled .adhd-reader-surface {
+  box-sizing: border-box !important;
+  inline-size: 100% !important;
+  max-inline-size: 100% !important;
+}
+
+:root.adhd-reader-enabled .adhd-reader-content {
+  box-sizing: border-box !important;
+  inline-size: 100% !important;
+  max-inline-size: 100% !important;
+  font-size: var(--adhd-font-size) !important;
+  line-height: var(--adhd-line-height) !important;
+  letter-spacing: 0.012em !important;
+  text-align: start !important;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-wrap: break-word;
+}
+
+:root.adhd-reader-enabled .adhd-reader-shell.adhd-reader-content {
+  inline-size: min(calc(100vw - 64px), var(--adhd-site-width)) !important;
+  max-inline-size: var(--adhd-site-width) !important;
+}
+
+:root.adhd-reader-enabled[data-adhd-site="wechat"] .adhd-reader-content,
+:root.adhd-reader-enabled[data-adhd-site="generic"] .adhd-reader-content {
+  color: #24272b !important;
+}
+
+:root.adhd-reader-enabled .adhd-reader-content :where(p, section, div, span, strong, em, blockquote, ul, ol, li, a, h1, h2, h3, h4, h5, h6) {
+  font-size: inherit !important;
+  line-height: inherit !important;
+}
+
+:root.adhd-reader-enabled[data-adhd-font="torch"] .adhd-reader-content,
+:root.adhd-reader-enabled[data-adhd-font="heritage"] .adhd-reader-content {
+  font-family: "Shudu Sino Torch", "Sino-Torch", "中华薪火体", var(--adhd-torch-fallback) !important;
+}
+
+:root.adhd-reader-enabled[data-adhd-font="xingkai"] .adhd-reader-content {
+  font-family: "Xingkai SC", "行楷-简", "Kaiti SC", STKaiti, serif !important;
+}
+
+:root.adhd-reader-enabled[data-adhd-font="hannotate"] .adhd-reader-content {
+  font-family: "Hannotate SC", "手札体-简", "HanziPen SC", "Kaiti SC", cursive !important;
+}
+
+:root.adhd-reader-enabled[data-adhd-font="hanzipen"] .adhd-reader-content {
+  font-family: "HanziPen SC", "翩翩体-简", "Hannotate SC", "Kaiti SC", cursive !important;
+}
+
+:root.adhd-reader-enabled[data-adhd-font="engraved"] .adhd-reader-content {
+  font-family: "FZDiaoBanSongS", "方正雕版宋 简", "Songti SC", STSong, serif !important;
+}
+
+:root.adhd-reader-enabled[data-adhd-font="fangsong"] .adhd-reader-content {
+  font-family: STFangsong, "华文仿宋", FangSong, "Songti SC", serif !important;
+}
+
+:root.adhd-reader-enabled[data-adhd-font="kaiti"] .adhd-reader-content {
+  font-family: "Kaiti SC", STKaiti, KaiTi, serif !important;
+}
+
+:root.adhd-reader-enabled[data-adhd-font="sans"] .adhd-reader-content {
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif !important;
+}
+
+:root.adhd-reader-enabled[data-adhd-font="serif"] .adhd-reader-content {
+  font-family: "Songti SC", STSong, "Noto Serif CJK SC", serif !important;
+}
+
+:root.adhd-reader-enabled[data-adhd-font]:not([data-adhd-font="original"]) .adhd-reader-content :where(p, section, div, span, strong, em, blockquote, ul, ol, li, a, h1, h2, h3, h4, h5, h6) {
+  font-family: inherit !important;
+}
+
+:root.adhd-reader-enabled:is([data-adhd-site="wechat"], [data-adhd-site="generic"]) .adhd-reader-content p {
+  margin-block: 0 var(--adhd-paragraph-gap) !important;
+  padding-block: 0 !important;
+  min-block-size: 0 !important;
+  block-size: auto !important;
+}
+
+:root.adhd-reader-enabled .adhd-reader-empty-block {
+  display: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  min-block-size: 0 !important;
+  block-size: 0 !important;
+}
+
+:root.adhd-reader-enabled .adhd-reader-compact-wrapper {
+  margin-block: 0 !important;
+  padding-block: 0 !important;
+  min-block-size: 0 !important;
+  block-size: auto !important;
+}
+
+:root.adhd-reader-enabled .adhd-reader-content :where(ul, ol) {
+  font-size: var(--adhd-list-font-size) !important;
+  line-height: max(1.55, var(--adhd-line-height)) !important;
+  margin-block: 0.45em 0.85em !important;
+  padding-inline-start: 1.45em !important;
+}
+
+:root.adhd-reader-enabled .adhd-reader-content :where(ul, ol) li {
+  font-size: inherit !important;
+  line-height: inherit !important;
+  margin-block: 0.24em !important;
+}
+
+:root.adhd-reader-enabled .adhd-reader-content :where(h1, h2, h3, h4, h5, h6, .adhd-reader-section-heading) {
+  font-weight: 700 !important;
+  line-height: 1.28 !important;
+  letter-spacing: 0.005em !important;
+  text-wrap: balance;
+  margin-block: 1.25em 0.55em !important;
+  padding-block: 0 !important;
+}
+
+:root.adhd-reader-enabled .adhd-reader-content h1 {
+  font-size: var(--adhd-heading-1-size) !important;
+}
+
+:root.adhd-reader-enabled .adhd-reader-content :where(h2, .adhd-reader-section-heading) {
+  font-size: var(--adhd-heading-2-size) !important;
+}
+
+:root.adhd-reader-enabled .adhd-reader-content h3 {
+  font-size: var(--adhd-heading-3-size) !important;
+}
+
+:root.adhd-reader-enabled .adhd-reader-content :where(h4, h5, h6) {
+  font-size: var(--adhd-heading-4-size) !important;
+}
+
+:root.adhd-reader-enabled .adhd-reader-content :where(h1, h2, h3, h4, h5, h6, .adhd-reader-section-heading) :where(span, strong, b, em, a) {
+  font-size: inherit !important;
+  line-height: inherit !important;
+}
+
+:root.adhd-reader-enabled .adhd-reader-surface :where(img, video, iframe) {
+  max-inline-size: 100% !important;
+  block-size: auto !important;
+}
+
+:root.adhd-reader-enabled[data-adhd-site="wechat"] .adhd-reader-content img.adhd-reader-large-media {
+  display: block !important;
+  width: min(100%, var(--adhd-media-natural-width)) !important;
+  inline-size: min(100%, var(--adhd-media-natural-width)) !important;
+  max-inline-size: 100% !important;
+  height: auto !important;
+  block-size: auto !important;
+  margin-inline: auto !important;
+}
+
+:root.adhd-reader-enabled[data-adhd-site="jike"] .adhd-reader-content {
+  margin-block: 0.4em 0.75em !important;
+}
+
+:root.adhd-reader-enabled[data-adhd-site="x"] .adhd-reader-surface {
+  padding-inline: clamp(12px, 2vw, 24px) !important;
+}
+
+:root.adhd-reader-enabled[data-adhd-site="x"] .adhd-reader-shell {
+  flex: 0 0 min(calc(100vw - 260px), var(--adhd-site-width)) !important;
+}
+
+:root.adhd-reader-enabled[data-adhd-site="x"] .adhd-reader-x-hidden {
+  display: none !important;
+}
+
+:root.adhd-reader-enabled[data-adhd-site="x"] .adhd-reader-x-nav {
+  flex: 0 0 auto !important;
+}
+
+:root.adhd-reader-enabled[data-adhd-site="x"] .adhd-reader-x-lane {
+  inline-size: 100% !important;
+  max-inline-size: 100% !important;
+}
+
+:root.adhd-reader-enabled[data-adhd-site="x"] .adhd-reader-content {
+  margin-block: 0.25em 0.6em !important;
+  white-space: pre-wrap;
+}
+
+:root.adhd-reader-enabled .adhd-reader-auto-bold {
+  font-weight: 700 !important;
+}
+
+:root.adhd-reader-enabled .adhd-reader-auto-bold[data-adhd-semantic="priority"] { font-weight: 800 !important; }
+:root.adhd-reader-enabled .adhd-reader-auto-bold[data-adhd-semantic="concept"] { font-weight: 750 !important; }
+:root.adhd-reader-enabled .adhd-reader-auto-bold[data-adhd-semantic="action"] { font-weight: 750 !important; }
+
+:root.adhd-reader-enabled .adhd-reader-highlight {
+  font-weight: 650 !important;
+  background-image: linear-gradient(
+    to bottom,
+    transparent 56%,
+    var(--adhd-marker-color) 56%,
+    var(--adhd-marker-color) 91%,
+    transparent 91%
+  ) !important;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  padding-inline: 0.05em;
+}
+
+:root.adhd-reader-enabled[data-adhd-multi-color="true"] .adhd-reader-highlight[data-adhd-semantic="priority"] { --adhd-marker-color: var(--adhd-priority-color); }
+:root.adhd-reader-enabled[data-adhd-multi-color="true"] .adhd-reader-highlight[data-adhd-semantic="concept"] { --adhd-marker-color: var(--adhd-concept-color); }
+:root.adhd-reader-enabled[data-adhd-multi-color="true"] .adhd-reader-highlight[data-adhd-semantic="action"] { --adhd-marker-color: var(--adhd-action-color); }
+:root.adhd-reader-enabled[data-adhd-multi-color="true"] .adhd-reader-highlight[data-adhd-semantic="evidence"] { --adhd-marker-color: var(--adhd-evidence-color); }
+:root.adhd-reader-enabled[data-adhd-multi-color="true"] .adhd-reader-highlight[data-adhd-semantic="degree"] { --adhd-marker-color: var(--adhd-degree-color); }
+
+/*
+ * 动态 React 页面使用 CSS Custom Highlight API：只持有 Range，不替换文字节点。
+ * 粗下划线模拟半高马克笔；strong 变体用轻微 text-shadow 模拟字重。
+ */
+::highlight(adhd-reader-priority),
+::highlight(adhd-reader-priority-strong) {
+  text-decoration-color: rgba(250, 204, 21, 0.46);
+}
+
+::highlight(adhd-reader-concept),
+::highlight(adhd-reader-concept-strong) {
+  text-decoration-color: rgba(96, 165, 250, 0.38);
+}
+
+::highlight(adhd-reader-action),
+::highlight(adhd-reader-action-strong) {
+  text-decoration-color: rgba(74, 222, 128, 0.38);
+}
+
+::highlight(adhd-reader-evidence) {
+  text-decoration-color: rgba(192, 132, 252, 0.34);
+}
+
+::highlight(adhd-reader-degree) {
+  text-decoration-color: rgba(251, 113, 133, 0.35);
+}
+
+::highlight(adhd-reader-marker),
+::highlight(adhd-reader-marker-strong) {
+  text-decoration-color: var(--adhd-marker-color);
+}
+
+::highlight(adhd-reader-priority),
+::highlight(adhd-reader-priority-strong),
+::highlight(adhd-reader-concept),
+::highlight(adhd-reader-concept-strong),
+::highlight(adhd-reader-action),
+::highlight(adhd-reader-action-strong),
+::highlight(adhd-reader-evidence),
+::highlight(adhd-reader-degree),
+::highlight(adhd-reader-marker),
+::highlight(adhd-reader-marker-strong) {
+  text-decoration-line: underline;
+  text-decoration-thickness: 0.42em;
+  text-underline-offset: -0.18em;
+  text-decoration-skip-ink: none;
+}
+
+::highlight(adhd-reader-priority-strong),
+::highlight(adhd-reader-concept-strong),
+::highlight(adhd-reader-action-strong),
+::highlight(adhd-reader-marker-strong),
+::highlight(adhd-reader-bold) {
+  text-shadow: -0.018em 0 currentColor, 0.018em 0 currentColor;
+}
+
+:root.adhd-reader-focus .adhd-reader-content {
+  border-radius: 3px;
+  transition: background-color 120ms ease, box-shadow 120ms ease;
+}
+
+@media (hover: hover) {
+  :root.adhd-reader-focus .adhd-reader-content:hover {
+    background: rgba(255, 248, 220, 0.46) !important;
+    box-shadow: 0 0 0 5px rgba(255, 248, 220, 0.32);
+  }
+}
+
+@media (max-width: 760px) {
+  :root.adhd-reader-enabled .adhd-reader-shell {
+    inline-size: 100% !important;
+    max-inline-size: 100% !important;
+  }
+
+  :root.adhd-reader-enabled:is([data-adhd-site="wechat"], [data-adhd-site="generic"]) .adhd-reader-shell {
+    padding-inline: 16px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root.adhd-reader-focus .adhd-reader-content { transition: none; }
+}
