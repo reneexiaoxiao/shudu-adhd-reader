@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "舒读 · ADHD 网页阅读器",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "description": "优化公众号、即刻、X/Twitter 与普通文章页，并为动态页面提供无侵入语义强调。",
   "permissions": ["storage", "activeTab", "scripting"],
   "host_permissions": [

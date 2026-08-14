@@ -311,16 +311,13 @@
   text-shadow: -0.018em 0 currentColor, 0.018em 0 currentColor;
 }
 
-:root.adhd-reader-focus .adhd-reader-content {
+:root.adhd-reader-focus .adhd-reader-content :where(p, blockquote, li, h1, h2, h3, h4, h5, h6) {
   border-radius: 3px;
-  transition: background-color 120ms ease, box-shadow 120ms ease;
+  transition: box-shadow 120ms ease;
 }
 
-@media (hover: hover) {
-  :root.adhd-reader-focus .adhd-reader-content:hover {
-    background: rgba(255, 248, 220, 0.46) !important;
-    box-shadow: 0 0 0 5px rgba(255, 248, 220, 0.32);
-  }
+:root.adhd-reader-focus .adhd-reader-content :where(p, blockquote, li, h1, h2, h3, h4, h5, h6):hover {
+  box-shadow: inset 3px 0 0 rgba(91, 116, 168, 0.24);
 }
 
 @media (max-width: 760px) {
@@ -335,5 +332,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :root.adhd-reader-focus .adhd-reader-content { transition: none; }
+  :root.adhd-reader-focus .adhd-reader-content :where(p, blockquote, li, h1, h2, h3, h4, h5, h6) { transition: none; }
 }

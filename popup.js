@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  if (chrome.runtime.getManifest().version !== "0.3.4") {
+  if (chrome.runtime.getManifest().version !== "0.3.5") {
     chrome.runtime.reload();
     return;
   }

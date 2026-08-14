@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const CONTENT_VERSION = "0.3.4";
+  const CONTENT_VERSION = "0.3.5";
   if (globalThis.__SHUDU_READER_CONTENT_VERSION__ === CONTENT_VERSION) return;
   if (globalThis.__SHUDU_READER_LOADED__ && !globalThis.__SHUDU_READER_CONTENT_VERSION__) return;
   const previousCleanup = globalThis.__SHUDU_READER_CLEANUP__;
