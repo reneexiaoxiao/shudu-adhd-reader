@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const TRANSLATION_VERSION = "0.4.3";
+  const TRANSLATION_VERSION = "0.4.4";
   if (globalThis.__SHUDU_TRANSLATION_VERSION__ === TRANSLATION_VERSION) return;
   try { globalThis.__SHUDU_TRANSLATION_CLEANUP__?.(); } catch {}
   globalThis.__SHUDU_TRANSLATION_VERSION__ = TRANSLATION_VERSION;

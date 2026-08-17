@@ -9,8 +9,8 @@ const content = await readFile(new URL("../translation.js", import.meta.url), "u
 const reader = await readFile(new URL("../content.js", import.meta.url), "utf8");
 const readerCss = await readFile(new URL("../reader.css", import.meta.url), "utf8");
 
-test("0.4.3 打包智能译读脚本、样式、后台和快捷键", () => {
-  assert.equal(manifest.version, "0.4.3");
+test("0.4.4 打包智能译读脚本、样式、后台和快捷键", () => {
+  assert.equal(manifest.version, "0.4.4");
   assert.equal(manifest.background.service_worker, "background.js");
   assert.deepEqual(manifest.content_scripts[0].js, ["translation-core.js", "content.js", "translation.js"]);
   assert.deepEqual(manifest.content_scripts[0].css, ["reader.css", "translation.css"]);
@@ -54,7 +54,19 @@ test("普通英文文章锁定文章容器，不再把每个英文单词画成�
   assert.match(reader, /dataSet|dataset\.adhdScript|adhdScript/);
   assert.doesNotMatch(reader, /addMatches\(\/\\b\(\[A-Za-z\]\[A-Za-z0-9\._\+\\\-\/\]\{2,24\}\)\\b\/g/);
   assert.match(readerCss, /adhd-reader-latin-concept/);
-  assert.match(readerCss, /text-decoration-thickness: 0\.18em/);
+  assert.match(readerCss, /background-color: rgba\(96, 165, 250, 0\.08\)/);
+});
+
+test("全部语义标记保持透明且动态页面不再绘制下划线", () => {
+  const semanticLines = readerCss.match(/(?:--adhd-(?:marker|priority|concept|action|evidence|degree)-color|background-color): rgba\([^;]+\)/g) || [];
+  assert.ok(semanticLines.length >= 18);
+  semanticLines.forEach((line) => {
+    const alpha = Number(line.match(/,\s*(0?\.\d+)\)$/)?.[1]);
+    assert.ok(alpha > 0 && alpha <= 0.18, `标记透明度超出范围：${line}`);
+  });
+  assert.match(readerCss, /text-decoration-line: none/);
+  assert.doesNotMatch(readerCss, /text-decoration-thickness:/);
+  assert.doesNotMatch(readerCss, /text-decoration-color:/);
 });
 
 test("通用文章识别覆盖更多语义正文容器", () => {

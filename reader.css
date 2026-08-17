@@ -22,17 +22,17 @@
   --adhd-heading-4-size: clamp(19px, calc(var(--adhd-font-size) + 3px), 33px);
   --adhd-line-height: 1.75;
   --adhd-paragraph-gap: 0.68em;
-  --adhd-marker-color: rgba(250, 204, 21, 0.42);
-  --adhd-priority-color: rgba(250, 204, 21, 0.46);
-  --adhd-concept-color: rgba(96, 165, 250, 0.34);
-  --adhd-action-color: rgba(74, 222, 128, 0.34);
-  --adhd-evidence-color: rgba(192, 132, 252, 0.3);
-  --adhd-degree-color: rgba(251, 113, 133, 0.31);
+  --adhd-marker-color: rgba(250, 204, 21, 0.17);
+  --adhd-priority-color: rgba(250, 204, 21, 0.18);
+  --adhd-concept-color: rgba(96, 165, 250, 0.15);
+  --adhd-action-color: rgba(74, 222, 128, 0.15);
+  --adhd-evidence-color: rgba(192, 132, 252, 0.13);
+  --adhd-degree-color: rgba(251, 113, 133, 0.13);
 }
 
-:root.adhd-reader-enabled[data-adhd-marker="mint"] { --adhd-marker-color: rgba(74, 222, 128, 0.34); }
-:root.adhd-reader-enabled[data-adhd-marker="coral"] { --adhd-marker-color: rgba(251, 113, 133, 0.32); }
-:root.adhd-reader-enabled[data-adhd-marker="blue"] { --adhd-marker-color: rgba(96, 165, 250, 0.32); }
+:root.adhd-reader-enabled[data-adhd-marker="mint"] { --adhd-marker-color: rgba(74, 222, 128, 0.15); }
+:root.adhd-reader-enabled[data-adhd-marker="coral"] { --adhd-marker-color: rgba(251, 113, 133, 0.13); }
+:root.adhd-reader-enabled[data-adhd-marker="blue"] { --adhd-marker-color: rgba(96, 165, 250, 0.15); }
 
 :root.adhd-reader-enabled .adhd-reader-shell {
   box-sizing: border-box !important;
@@ -266,34 +266,35 @@
 
 /*
  * 动态 React 页面使用 CSS Custom Highlight API：只持有 Range，不替换文字节点。
- * CJK 使用半高马克笔；英文页面改用更薄、更浅的书写线，避免标题形成深色条块。
+ * Tabbit 会把半透明 text-decoration 合成为近黑色，因此这里改用更浅的透明底色，
+ * 完全取消下划线；静态页面仍由上方的半高渐变保留马克笔效果。
  */
 ::highlight(adhd-reader-priority),
 ::highlight(adhd-reader-priority-strong) {
-  text-decoration-color: rgba(250, 204, 21, 0.46);
+  background-color: rgba(250, 204, 21, 0.12);
 }
 
 ::highlight(adhd-reader-concept),
 ::highlight(adhd-reader-concept-strong) {
-  text-decoration-color: rgba(96, 165, 250, 0.38);
+  background-color: rgba(96, 165, 250, 0.1);
 }
 
 ::highlight(adhd-reader-action),
 ::highlight(adhd-reader-action-strong) {
-  text-decoration-color: rgba(74, 222, 128, 0.38);
+  background-color: rgba(74, 222, 128, 0.1);
 }
 
 ::highlight(adhd-reader-evidence) {
-  text-decoration-color: rgba(192, 132, 252, 0.34);
+  background-color: rgba(192, 132, 252, 0.09);
 }
 
 ::highlight(adhd-reader-degree) {
-  text-decoration-color: rgba(251, 113, 133, 0.35);
+  background-color: rgba(251, 113, 133, 0.09);
 }
 
 ::highlight(adhd-reader-marker),
 ::highlight(adhd-reader-marker-strong) {
-  text-decoration-color: var(--adhd-marker-color);
+  background-color: var(--adhd-marker-color);
 }
 
 ::highlight(adhd-reader-priority),
@@ -306,38 +307,35 @@
 ::highlight(adhd-reader-degree),
 ::highlight(adhd-reader-marker),
 ::highlight(adhd-reader-marker-strong) {
-  text-decoration-line: underline;
-  text-decoration-thickness: 0.34em;
-  text-underline-offset: -0.12em;
-  text-decoration-skip-ink: none;
+  text-decoration-line: none;
 }
 
 ::highlight(adhd-reader-latin-priority),
 ::highlight(adhd-reader-latin-priority-strong) {
-  text-decoration-color: rgba(250, 204, 21, 0.28);
+  background-color: rgba(250, 204, 21, 0.09);
 }
 
 ::highlight(adhd-reader-latin-concept),
 ::highlight(adhd-reader-latin-concept-strong) {
-  text-decoration-color: rgba(96, 165, 250, 0.25);
+  background-color: rgba(96, 165, 250, 0.08);
 }
 
 ::highlight(adhd-reader-latin-action),
 ::highlight(adhd-reader-latin-action-strong) {
-  text-decoration-color: rgba(74, 222, 128, 0.24);
+  background-color: rgba(74, 222, 128, 0.08);
 }
 
 ::highlight(adhd-reader-latin-evidence) {
-  text-decoration-color: rgba(192, 132, 252, 0.22);
+  background-color: rgba(192, 132, 252, 0.07);
 }
 
 ::highlight(adhd-reader-latin-degree) {
-  text-decoration-color: rgba(251, 113, 133, 0.22);
+  background-color: rgba(251, 113, 133, 0.07);
 }
 
 ::highlight(adhd-reader-latin-marker),
 ::highlight(adhd-reader-latin-marker-strong) {
-  text-decoration-color: rgba(96, 165, 250, 0.22);
+  background-color: rgba(96, 165, 250, 0.08);
 }
 
 ::highlight(adhd-reader-latin-priority),
@@ -350,10 +348,7 @@
 ::highlight(adhd-reader-latin-degree),
 ::highlight(adhd-reader-latin-marker),
 ::highlight(adhd-reader-latin-marker-strong) {
-  text-decoration-line: underline;
-  text-decoration-thickness: 0.18em;
-  text-underline-offset: -0.035em;
-  text-decoration-skip-ink: none;
+  text-decoration-line: none;
 }
 
 ::highlight(adhd-reader-priority-strong),

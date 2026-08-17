@@ -1,4 +1,4 @@
-舒读 v0.4.3 · Tabbit / Chromium 安装
+舒读 v0.4.4 · Tabbit / Chromium 安装
 
 1. 在 Tabbit 地址栏输入：chrome://extensions/
 2. 打开页面右上角的「开发者模式」
