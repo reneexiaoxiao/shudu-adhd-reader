@@ -257,7 +257,7 @@
 
 /*
  * 动态 React 页面使用 CSS Custom Highlight API：只持有 Range，不替换文字节点。
- * 粗下划线模拟半高马克笔；strong 变体用轻微 text-shadow 模拟字重。
+ * CJK 使用半高马克笔；英文页面改用更薄、更浅的书写线，避免标题形成深色条块。
  */
 ::highlight(adhd-reader-priority),
 ::highlight(adhd-reader-priority-strong) {
@@ -298,8 +298,52 @@
 ::highlight(adhd-reader-marker),
 ::highlight(adhd-reader-marker-strong) {
   text-decoration-line: underline;
-  text-decoration-thickness: 0.42em;
-  text-underline-offset: -0.18em;
+  text-decoration-thickness: 0.34em;
+  text-underline-offset: -0.12em;
+  text-decoration-skip-ink: none;
+}
+
+::highlight(adhd-reader-latin-priority),
+::highlight(adhd-reader-latin-priority-strong) {
+  text-decoration-color: rgba(250, 204, 21, 0.28);
+}
+
+::highlight(adhd-reader-latin-concept),
+::highlight(adhd-reader-latin-concept-strong) {
+  text-decoration-color: rgba(96, 165, 250, 0.25);
+}
+
+::highlight(adhd-reader-latin-action),
+::highlight(adhd-reader-latin-action-strong) {
+  text-decoration-color: rgba(74, 222, 128, 0.24);
+}
+
+::highlight(adhd-reader-latin-evidence) {
+  text-decoration-color: rgba(192, 132, 252, 0.22);
+}
+
+::highlight(adhd-reader-latin-degree) {
+  text-decoration-color: rgba(251, 113, 133, 0.22);
+}
+
+::highlight(adhd-reader-latin-marker),
+::highlight(adhd-reader-latin-marker-strong) {
+  text-decoration-color: rgba(96, 165, 250, 0.22);
+}
+
+::highlight(adhd-reader-latin-priority),
+::highlight(adhd-reader-latin-priority-strong),
+::highlight(adhd-reader-latin-concept),
+::highlight(adhd-reader-latin-concept-strong),
+::highlight(adhd-reader-latin-action),
+::highlight(adhd-reader-latin-action-strong),
+::highlight(adhd-reader-latin-evidence),
+::highlight(adhd-reader-latin-degree),
+::highlight(adhd-reader-latin-marker),
+::highlight(adhd-reader-latin-marker-strong) {
+  text-decoration-line: underline;
+  text-decoration-thickness: 0.18em;
+  text-underline-offset: -0.035em;
   text-decoration-skip-ink: none;
 }
 
@@ -309,6 +353,14 @@
 ::highlight(adhd-reader-marker-strong),
 ::highlight(adhd-reader-bold) {
   text-shadow: -0.018em 0 currentColor, 0.018em 0 currentColor;
+}
+
+::highlight(adhd-reader-latin-priority-strong),
+::highlight(adhd-reader-latin-concept-strong),
+::highlight(adhd-reader-latin-action-strong),
+::highlight(adhd-reader-latin-marker-strong),
+::highlight(adhd-reader-latin-bold) {
+  text-shadow: -0.008em 0 currentColor, 0.008em 0 currentColor;
 }
 
 :root.adhd-reader-focus .adhd-reader-content :where(p, blockquote, li, h1, h2, h3, h4, h5, h6) {

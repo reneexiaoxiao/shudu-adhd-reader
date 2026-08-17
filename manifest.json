@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "舒读 · ADHD 网页阅读器",
-  "version": "0.3.5",
-  "description": "优化公众号、即刻、X/Twitter 与普通文章页，并为动态页面提供无侵入语义强调。",
+  "version": "0.4.2",
+  "description": "优化公众号、即刻、X/Twitter 与普通文章页，并提供 ADHD 友好的分级智能译读。",
   "permissions": ["storage", "activeTab", "scripting"],
   "host_permissions": [
     "https://mp.weixin.qq.com/*",
@@ -10,8 +10,12 @@
     "https://web.okjike.com/*",
     "https://okjike.com/*",
     "https://x.com/*",
-    "https://twitter.com/*"
+    "https://twitter.com/*",
+    "https://open.bigmodel.cn/*"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_title": "舒读",
     "default_popup": "popup.html",
@@ -38,11 +42,20 @@
         "https://x.com/*",
         "https://twitter.com/*"
       ],
-      "css": ["reader.css"],
-      "js": ["content.js"],
+      "css": ["reader.css", "translation.css"],
+      "js": ["translation-core.js", "content.js", "translation.js"],
       "run_at": "document_idle"
     }
   ],
+  "commands": {
+    "toggle-translation": {
+      "suggested_key": {
+        "default": "Alt+Shift+F",
+        "mac": "Alt+Shift+F"
+      },
+      "description": "开启或暂停滚动译读"
+    }
+  },
   "web_accessible_resources": [
     {
       "resources": ["fonts/*"],

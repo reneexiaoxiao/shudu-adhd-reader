@@ -1,12 +1,9 @@
 (() => {
   "use strict";
 
-  if (chrome.runtime.getManifest().version !== "0.3.5") {
-    chrome.runtime.reload();
-    return;
-  }
-
   const SETTINGS_KEY = "adhdReaderSettings";
+  const API_KEY_STORAGE = "shuduZhipuApiKey";
+  const TRANSLATION_SETTINGS_KEY = "shuduTranslationSettings";
   const DEFAULTS = {
     enabled: true,
     preset: "balanced",
@@ -175,8 +172,20 @@
   }
 
   async function injectIntoTab(tab) {
-    await chrome.scripting.insertCSS({ target: { tabId: tab.id }, files: ["reader.css"] });
-    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] });
+    await chrome.scripting.insertCSS({ target: { tabId: tab.id }, files: ["reader.css", "translation.css"] });
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => {
+        try { globalThis.__SHUDU_TRANSLATION_CLEANUP__?.(); } catch {}
+        try { globalThis.__SHUDU_READER_CLEANUP__?.(); } catch {}
+        delete globalThis.__SHUDU_TRANSLATION_CLEANUP__;
+        delete globalThis.__SHUDU_TRANSLATION_VERSION__;
+        delete globalThis.__SHUDU_READER_CLEANUP__;
+        delete globalThis.__SHUDU_READER_CONTENT_VERSION__;
+        delete globalThis.__SHUDU_READER_LOADED__;
+      }
+    });
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["translation-core.js", "content.js", "translation.js"] });
   }
 
   function updateFromControl(id, target) {
@@ -250,6 +259,179 @@
     }
   });
 
+  const translationElements = {
+    retention: byId("translationRetention"),
+    toggle: byId("toggleTranslation"),
+    clear: byId("clearTranslations"),
+    status: byId("translationStatus"),
+    apiState: byId("translationApiState"),
+    apiKey: byId("zhipuApiKey"),
+    model: byId("translationModel"),
+    saveAndTest: byId("saveAndTestApi"),
+    clearKey: byId("clearApiKey")
+  };
+  let translationAutoEnabled = false;
+  let apiConfigured = false;
+
+  function setTranslationStatus(text, kind = "normal") {
+    translationElements.status.textContent = text;
+    translationElements.status.dataset.kind = kind;
+  }
+
+  function renderTranslationApiState() {
+    translationElements.apiState.textContent = apiConfigured ? "GLM API · 已配置" : "GLM API · 未配置";
+    translationElements.apiState.dataset.kind = apiConfigured ? "ok" : "warn";
+  }
+
+  function setTranslationBusy(value, label = "正在处理…") {
+    translationElements.toggle.disabled = value;
+    translationElements.clear.disabled = value;
+    translationElements.toggle.textContent = value
+      ? label
+      : translationAutoEnabled
+        ? "暂停滚动译读"
+        : "开启滚动译读";
+  }
+
+  async function popupTranslationAction(action) {
+    try {
+      return await chrome.runtime.sendMessage({ type: "SHUDU_TRANSLATION_POPUP_ACTION", action });
+    } catch (error) {
+      if (/Receiving end does not exist|Could not establish connection/i.test(String(error?.message || error || ""))) {
+        throw new Error("舒读后台尚未启动，请在扩展管理页重新加载舒读");
+      }
+      throw error;
+    }
+  }
+
+  async function translationPageStatus() {
+    const tab = await activeTab();
+    if (!tab?.id || !pageInfo(tab).injectable) throw new Error("当前页面不支持译读");
+    try {
+      return await chrome.tabs.sendMessage(tab.id, { type: "SHUDU_TRANSLATION_ACTION", action: "status" });
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  async function loadTranslationPanel() {
+    const stored = await chrome.storage.local.get([API_KEY_STORAGE, TRANSLATION_SETTINGS_KEY]);
+    const translationSettings = { model: "glm-5.2", retention: "cet6", ...(stored[TRANSLATION_SETTINGS_KEY] || {}) };
+    translationElements.retention.value = translationSettings.retention;
+    translationElements.model.value = translationSettings.model;
+    apiConfigured = Boolean(stored[API_KEY_STORAGE]);
+    renderTranslationApiState();
+    try {
+      const page = await translationPageStatus();
+      translationAutoEnabled = Boolean(page?.autoEnabled);
+      setTranslationBusy(false);
+      if (page?.count) {
+        setTranslationStatus(`${translationAutoEnabled ? "滚动译读已开启" : "本页已有译文"} · ${page.count} 段`, "ok");
+      } else if (translationAutoEnabled && page?.candidateCount === 0) {
+        setTranslationStatus("滚动译读已开启，但当前屏未识别到英文正文；请向下滚动或重新分析页面", "error");
+      } else if (page?.lastAction === "incomplete") {
+        setTranslationStatus(page.lastError || "接口未完整返回译文；继续滚动时会重试", "error");
+      } else if (apiConfigured) {
+        setTranslationStatus(page?.candidateCount
+          ? `已识别当前屏 ${page.candidateCount} 段英文；点击开启后开始译读`
+          : "API 已保存；点击开启后只上传进入阅读区的英文段落", "ok");
+      } else {
+        setTranslationStatus("请展开 API 设置，保存通用开放平台 Key", "error");
+      }
+    } catch (error) {
+      setTranslationStatus(error.message || "当前页面不支持译读", "error");
+    }
+  }
+
+  translationElements.retention.addEventListener("change", async () => {
+    const stored = await chrome.storage.local.get(TRANSLATION_SETTINGS_KEY);
+    await chrome.storage.local.set({
+      [TRANSLATION_SETTINGS_KEY]: {
+        ...(stored[TRANSLATION_SETTINGS_KEY] || {}),
+        model: translationElements.model.value.trim() || "glm-5.2",
+        retention: translationElements.retention.value
+      }
+    });
+    setTranslationStatus("保留程度已更新；新进入屏幕的段落按新标准翻译");
+  });
+
+  translationElements.toggle.addEventListener("click", async () => {
+    setTranslationBusy(true, "正在读取当前屏…");
+    setTranslationStatus("正在识别可翻译的英文段落…");
+    try {
+      const response = await popupTranslationAction("toggle-auto");
+      if (!response?.ok || response.action === "error") throw new Error(response?.error || "译读失败");
+      translationAutoEnabled = Boolean(response.autoEnabled);
+      const started = response.action === "auto-started" || response.action === "auto-started-empty";
+      setTranslationStatus(
+        response.action === "auto-started-empty"
+          ? "已开启，但当前屏未识别到英文正文；请向下滚动或重新分析页面"
+          : response.action === "auto-started" && response.missingCount
+            ? `已开启 · 新增 ${response.count || 0} 段，仍有 ${response.missingCount} 段未返回`
+            : response.action === "auto-started"
+              ? `滚动译读已开启${response.count ? ` · 新增 ${response.count} 段` : " · 当前屏无需重复翻译"}`
+          : "滚动译读已暂停",
+        response.action === "auto-started-empty" || response.missingCount ? "error" : started ? "ok" : "normal"
+      );
+    } catch (error) {
+      setTranslationStatus(error.message || "译读失败", "error");
+      if (/API Key|配置/.test(error.message || "")) document.querySelector(".api-settings").open = true;
+    } finally {
+      setTranslationBusy(false);
+    }
+  });
+
+  translationElements.clear.addEventListener("click", async () => {
+    setTranslationBusy(true, "正在清除…");
+    try {
+      const response = await popupTranslationAction("clear");
+      if (!response?.ok) throw new Error(response?.error || "清除失败");
+      translationAutoEnabled = false;
+      setTranslationStatus(response.count ? `已移除 ${response.count} 段译文` : "本页还没有译文");
+    } catch (error) {
+      setTranslationStatus(error.message || "清除失败", "error");
+    } finally {
+      setTranslationBusy(false);
+    }
+  });
+
+  translationElements.saveAndTest.addEventListener("click", async () => {
+    const key = translationElements.apiKey.value.trim();
+    const model = translationElements.model.value.trim() || "glm-5.2";
+    translationElements.saveAndTest.disabled = true;
+    translationElements.clearKey.disabled = true;
+    setTranslationStatus("正在保存并测试智谱连接…");
+    try {
+      const update = {
+        [TRANSLATION_SETTINGS_KEY]: { model, retention: translationElements.retention.value }
+      };
+      if (key) update[API_KEY_STORAGE] = key;
+      await chrome.storage.local.set(update);
+      translationElements.apiKey.value = "";
+      const response = await chrome.runtime.sendMessage({ type: "SHUDU_TRANSLATION_TEST" });
+      if (!response?.ok) throw new Error(response?.error || "连接测试失败");
+      apiConfigured = true;
+      renderTranslationApiState();
+      setTranslationStatus(`连接成功 · ${response.model}`, "ok");
+    } catch (error) {
+      const stored = await chrome.storage.local.get(API_KEY_STORAGE);
+      apiConfigured = Boolean(stored[API_KEY_STORAGE]);
+      renderTranslationApiState();
+      setTranslationStatus(error.message || "连接测试失败", "error");
+    } finally {
+      translationElements.saveAndTest.disabled = false;
+      translationElements.clearKey.disabled = false;
+    }
+  });
+
+  translationElements.clearKey.addEventListener("click", async () => {
+    await chrome.storage.local.remove(API_KEY_STORAGE);
+    translationElements.apiKey.value = "";
+    apiConfigured = false;
+    renderTranslationApiState();
+    setTranslationStatus("本机 API Key 已删除");
+  });
+
   chrome.storage.sync.get({ [SETTINGS_KEY]: DEFAULTS }, (result) => {
     settings = { ...DEFAULTS, ...result[SETTINGS_KEY] };
     let migrated = false;
@@ -275,4 +457,5 @@
     render();
     detectPage();
   });
+  loadTranslationPanel();
 })();

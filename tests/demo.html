@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Shudu Translation Test Article</title>
+    <style>
+      body { margin: 0; background: #f7f7f3; color: #242824; font: 18px/1.7 Georgia, serif; }
+      article { width: min(760px, calc(100vw - 48px)); margin: 36px auto 120px; padding: 32px; background: white; }
+      h1 { line-height: 1.2; }
+      p { margin: 0 0 1.2em; }
+      .spacer { height: 680px; }
+    </style>
+  </head>
+  <body>
+    <article id="js_content">
+      <h1>Why brittle consensus hides consequential trade-offs</h1>
+      <p>A brittle consensus can obscure the consequential trade-offs that matter most to a growing organization.</p>
+      <p>Good teams sometimes mistake surface agreement for genuine alignment, even when their incentives quietly diverge.</p>
+      <p>Deliberate practice becomes more useful when feedback is specific, timely, and difficult to rationalize away.</p>
+      <p>A well-designed decision process makes uncertainty legible without pretending that ambiguity has disappeared.</p>
+      <div class="spacer" aria-hidden="true"></div>
+      <p>Leaders who cultivate epistemic humility can update their beliefs without turning every revision into a loss of status.</p>
+      <p>Resilient institutions preserve dissent long enough to discover whether an apparent outlier is actually an early signal.</p>
+      <p>The most durable advantage may come from compounding judgment rather than accumulating disconnected tactics.</p>
+      <p>When coordination costs rise, progressive disclosure keeps the shared interface understandable without erasing nuance.</p>
+      <div id="dynamic"></div>
+    </article>
+    <script>
+      window.addEventListener("scroll", () => {
+        if (scrollY < 200 || document.querySelector("#dynamic p")) return;
+        const paragraph = document.createElement("p");
+        paragraph.textContent = "Dynamic pages require idempotent processing so newly inserted paragraphs are translated exactly once.";
+        document.querySelector("#dynamic").append(paragraph);
+      }, { passive: true });
+    </script>
+  </body>
+</html>

@@ -7,7 +7,7 @@
 }
 
 * { box-sizing: border-box; }
-body { width: 368px; margin: 0; background: #f4f3ee; }
+body { width: 368px; max-height: 760px; margin: 0; overflow-y: auto; background: #f4f3ee; }
 button, input, select { font: inherit; }
 button { cursor: pointer; }
 main { padding: 18px; }
@@ -30,6 +30,29 @@ h2 { margin: 0; font-size: 14px; font-weight: 700; }
 }
 .status[data-kind="ok"] { border-color: #39745a; background: #f4faf5; }
 .status[data-kind="warn"] { border-color: #b37735; }
+
+.translation-panel { border-color: #cad7cf; background: #fbfdfb; }
+.translation-intro { margin: -2px 0 9px; color: #68716b; font-size: 12px; line-height: 1.55; }
+.translation-actions { display: grid; grid-template-columns: 1fr auto; gap: 7px; margin-top: 8px; }
+.translation-actions button { min-height: 36px; border-radius: 7px; font-size: 12px; font-weight: 650; }
+.translation-actions button:disabled, .api-actions button:disabled { cursor: wait; opacity: .58; }
+.translation-primary { border: 1px solid #315f4c; background: #39745a; color: #fff; }
+.translation-primary:hover:not(:disabled) { background: #315f4c; }
+.translation-secondary { padding-inline: 10px; border: 1px solid #c7cec9; background: #fff; color: #536159; }
+.shortcut-hint { margin: 7px 0 0; color: #8a918b; font-size: 10px; text-align: center; }
+.translation-status { min-height: 17px; margin: 7px 0 0; color: #606a63; font-size: 11px; line-height: 1.5; text-align: center; }
+.translation-status[data-kind="ok"] { color: #39745a; }
+.translation-status[data-kind="error"] { color: #a24c42; }
+.api-settings { margin-top: 9px; border-top: 1px solid #e0e6e1; padding-top: 8px; }
+.api-settings summary { color: #536159; font-size: 11px; font-weight: 650; cursor: pointer; }
+.api-field { display: grid; gap: 5px; margin-top: 9px; color: #636d66; font-size: 11px; }
+.api-field input { width: 100%; min-height: 34px; padding: 0 9px; border: 1px solid #ced5d0; border-radius: 7px; background: #fff; color: #26312a; font-size: 12px; outline: none; }
+.api-field input:focus { border-color: #39745a; }
+.api-actions { display: grid; grid-template-columns: 1fr auto; gap: 7px; margin-top: 9px; }
+.api-actions button { min-height: 34px; padding: 0 10px; border: 1px solid #bdc9c1; border-radius: 7px; background: #fff; color: #315f4c; font-size: 11px; font-weight: 650; }
+.api-actions button:first-child { border-color: #39745a; background: #edf6f0; }
+.api-note { margin: 8px 0 0; color: #8a918b; font-size: 9px; line-height: 1.5; }
+.api-note code { font-size: inherit; }
 
 section {
   margin-top: 10px;

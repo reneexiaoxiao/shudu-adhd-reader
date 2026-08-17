@@ -1,4 +1,5 @@
 .DS_Store
+.codex/
 fonts/*.ttf
 fonts/*.otf
 *.zip

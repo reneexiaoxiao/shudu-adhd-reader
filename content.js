@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const CONTENT_VERSION = "0.3.5";
+  const CONTENT_VERSION = "0.4.2";
   if (globalThis.__SHUDU_READER_CONTENT_VERSION__ === CONTENT_VERSION) return;
   if (globalThis.__SHUDU_READER_LOADED__ && !globalThis.__SHUDU_READER_CONTENT_VERSION__) return;
   const previousCleanup = globalThis.__SHUDU_READER_CLEANUP__;
@@ -45,7 +45,7 @@
   };
   const SITE_WIDTH_CAPS = { wechat: 2400, jike: 960, x: 840, generic: 1100 };
   const FONT_TARGET_SELECTOR = "p, section, div, span, strong, em, blockquote, ul, ol, li, a, h1, h2, h3, h4, h5, h6";
-  const MUTATION_IGNORE_SELECTOR = "#renee-selection-toolbar-host, #renee-feed-toolbar-host, [data-adhd-reader-ui='true']";
+  const MUTATION_IGNORE_SELECTOR = "#renee-selection-toolbar-host, #renee-feed-toolbar-host, [data-adhd-reader-ui='true'], [data-shudu-translation], [data-shudu-translation-toast]";
   const FONT_STACKS = Object.freeze({
     torch: '"Shudu Sino Torch", "Sino-Torch", "中华薪火体", "PingFang SC", "Hiragino Sans GB", system-ui, sans-serif',
     heritage: '"Shudu Sino Torch", "Sino-Torch", "中华薪火体", "PingFang SC", "Hiragino Sans GB", system-ui, sans-serif',
@@ -73,7 +73,18 @@
     "adhd-reader-degree",
     "adhd-reader-marker",
     "adhd-reader-marker-strong",
-    "adhd-reader-bold"
+    "adhd-reader-bold",
+    "adhd-reader-latin-priority",
+    "adhd-reader-latin-priority-strong",
+    "adhd-reader-latin-concept",
+    "adhd-reader-latin-concept-strong",
+    "adhd-reader-latin-action",
+    "adhd-reader-latin-action-strong",
+    "adhd-reader-latin-evidence",
+    "adhd-reader-latin-degree",
+    "adhd-reader-latin-marker",
+    "adhd-reader-latin-marker-strong",
+    "adhd-reader-latin-bold"
   ]);
   const SEMANTIC_RULES = Object.freeze([
     {
@@ -185,11 +196,14 @@
     if (textLength < 100) return -Infinity;
     const paragraphCount = element.querySelectorAll("p, blockquote, li").length;
     const headingCount = element.querySelectorAll("h1, h2, h3").length;
-    const semanticBoost = element.matches("article, .entry-content, .post-content, .article-content") ? 250 : 0;
+    const semanticBoost = element.matches("article, .entry-content, .post-content, .article-content, .blog-content, .prose") ? 520 : 0;
     const linkTextLength = [...element.querySelectorAll("a")]
       .reduce((sum, link) => sum + meaningfulText(link).length, 0);
     const linkRatio = linkTextLength / Math.max(textLength, 1);
-    return textLength + paragraphCount * 140 + headingCount * 80 + semanticBoost - linkRatio * textLength * 1.5;
+    const broadMainPenalty = element.matches("main, [role='main']") && element.querySelector("article, .entry-content, .post-content, .article-content, .blog-content, .prose")
+      ? 1800
+      : 0;
+    return textLength + paragraphCount * 140 + headingCount * 80 + semanticBoost - linkRatio * textLength * 1.5 - broadMainPenalty;
   }
 
   function discoverWechat() {
@@ -289,9 +303,11 @@
 
   function discoverGeneric() {
     const candidates = uniqueElements([
-      ...document.querySelectorAll("article, main, [role='main'], .entry-content, .post-content, .article-content")
+      ...document.querySelectorAll("article, .entry-content, .post-content, .article-content, .blog-content, .prose, main, [role='main']")
     ]).filter((element) => !element.closest("nav, aside, footer"));
-    const best = candidates
+    const preferred = candidates.filter((element) => element.matches("article, .entry-content, .post-content, .article-content, .blog-content, .prose"));
+    const ranked = preferred.some((element) => genericCandidateScore(element) > 100) ? preferred : candidates;
+    const best = ranked
       .map((element) => ({ element, score: genericCandidateScore(element) }))
       .sort((a, b) => b.score - a.score)[0];
     const content = best?.score > 100 ? best.element : null;
@@ -344,7 +360,12 @@
   }
 
   function applyForcedFont(settings) {
-    const stack = settings.enabled ? FONT_STACKS[settings.fontFamily] : null;
+    const selectedStack = FONT_STACKS[settings.fontFamily];
+    const stack = settings.enabled
+      ? document.documentElement.dataset.adhdScript === "latin" && selectedStack
+        ? `"Avenir Next", "SF Pro Text", ${selectedStack}`
+        : selectedStack
+      : null;
     if (!stack) {
       restoreOriginalFonts();
       return;
@@ -488,6 +509,7 @@
     root.classList.toggle(ROOT_CLASS, settings.enabled);
     root.classList.toggle("adhd-reader-focus", settings.enabled && settings.focusEnabled);
     root.dataset.adhdSite = currentContext.site;
+    root.dataset.adhdScript = dominantContentScript();
     root.dataset.adhdFont = settings.fontFamily;
     root.dataset.adhdMarker = settings.markerColor;
     root.dataset.adhdMultiColor = String(settings.multiColorEnabled);
@@ -578,21 +600,46 @@
   }
 
   function nativeHighlightName(match, settings, highlight, bold) {
-    if (!highlight) return bold ? "adhd-reader-bold" : null;
-    if (!settings.multiColorEnabled) return bold ? "adhd-reader-marker-strong" : "adhd-reader-marker";
+    const prefix = document.documentElement.dataset.adhdScript === "latin" ? "adhd-reader-latin-" : "adhd-reader-";
+    if (!highlight) return bold ? `${prefix}bold` : null;
+    if (!settings.multiColorEnabled) return bold ? `${prefix}marker-strong` : `${prefix}marker`;
     if (bold && ["priority", "concept", "action"].includes(match.category)) {
-      return `adhd-reader-${match.category}-strong`;
+      return `${prefix}${match.category}-strong`;
     }
-    return `adhd-reader-${match.category}`;
+    return `${prefix}${match.category}`;
+  }
+
+  function dominantContentScript() {
+    let latinLetters = 0;
+    let hanCharacters = 0;
+    let sampled = 0;
+    currentContext.contents.forEach((content) => {
+      const walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT, {
+        acceptNode(node) {
+          if (sampled >= 16000 || node.parentElement?.closest(MUTATION_IGNORE_SELECTOR)) return NodeFilter.FILTER_REJECT;
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      });
+      while (walker.nextNode() && sampled < 16000) {
+        const text = walker.currentNode.nodeValue || "";
+        latinLetters += (text.match(/[A-Za-z]/g) || []).length;
+        hanCharacters += (text.match(/[\u3400-\u9fff]/g) || []).length;
+        sampled += text.length;
+      }
+    });
+    return latinLetters >= 120 && latinLetters > hanCharacters * 1.8 ? "latin" : "cjk";
   }
 
   function extractDocumentConcepts() {
     const counts = new Map();
-    const stopWords = new Set(["我们", "他们", "你们", "这个", "那个", "这些", "那些", "一个", "一种", "什么", "为何", "为什么", "怎么", "如何", "不是", "可以", "需要", "已经", "没有", "还有", "以及", "因为", "所以", "但是", "相关", "变化", "事件", "为了", "起点", "有人", "所有人", "自己", "其它", "其中", "本身", "进行", "实现", "成为", "认为", "公开", "目前", "现在", "今天"]);
+    const stopWords = new Set(["我们", "他们", "你们", "这个", "那个", "这些", "那些", "一个", "一种", "什么", "为何", "为什么", "怎么", "如何", "不是", "可以", "需要", "已经", "没有", "还有", "以及", "因为", "所以", "但是", "相关", "变化", "事件", "为了", "起点", "有人", "所有人", "自己", "其它", "其中", "本身", "进行", "实现", "成为", "认为", "公开", "目前", "现在", "今天", "the", "and", "that", "this", "with", "from", "into", "there", "their", "they", "them", "then", "than", "when", "where", "which", "while", "would", "could", "should", "have", "has", "had", "been", "being", "were", "will", "more", "most", "some", "such", "only", "also", "about", "after", "before", "under", "over", "between", "through", "each", "every", "same", "other", "these", "those", "what", "much", "many", "very", "just", "article", "models", "datasets", "collections"]);
     const segmenter = typeof Intl?.Segmenter === "function" ? new Intl.Segmenter("zh-CN", { granularity: "word" }) : null;
     const remember = (term, boost = 1) => {
       const normalized = term.trim().replace(/^[“「『《]|[”」』》]$/g, "");
-      if (normalized.length < 2 || normalized.length > 24 || stopWords.has(normalized) || /^[一二三四五六七八九十百千万\d]+$/.test(normalized)) return;
+      const lower = normalized.toLocaleLowerCase("en-US");
+      const isSingleLatinToken = /^[A-Za-z]+$/.test(normalized);
+      if (normalized.length < 2 || normalized.length > 40 || stopWords.has(normalized) || stopWords.has(lower) || /^[一二三四五六七八九十百千万\d]+$/.test(normalized)) return;
+      if (isSingleLatinToken && !/^[A-Z]{2,}$/.test(normalized) && !/^[A-Z][A-Za-z]{4,}$/.test(normalized)) return;
       counts.set(normalized, (counts.get(normalized) || 0) + boost);
     };
     currentContext.contents.forEach((content) => {
@@ -602,7 +649,8 @@
           if (segment.isWordLike) remember(segment.segment);
         }
       }
-      fullText.match(/\b[A-Za-z][A-Za-z0-9._+\-/]{2,24}\b/g)?.forEach((term) => remember(term));
+      fullText.match(/\b(?:[A-Z]{2,}[A-Za-z0-9._+\-/]*|[A-Za-z]+[0-9][A-Za-z0-9._+\-/]*|[A-Za-z]+[-/][A-Za-z0-9._+\-/]+)\b/g)?.forEach((term) => remember(term));
+      [...fullText.matchAll(/\b([A-Z][A-Za-z0-9.+/-]+(?:\s+[A-Z][A-Za-z0-9.+/-]+){1,3})\b/g)].forEach((match) => remember(match[1], 2));
       [...content.querySelectorAll("h1, h2, h3, h4")].forEach((element) => {
         const source = element.textContent || "";
         if (segmenter) {
@@ -610,7 +658,8 @@
             if (segment.isWordLike) remember(segment.segment, 3);
           }
         }
-        source.match(/\b[A-Za-z][A-Za-z0-9._+\-/]{2,24}\b/g)?.forEach((term) => remember(term, 3));
+        source.match(/\b(?:[A-Z]{2,}[A-Za-z0-9._+\-/]*|[A-Za-z]+[0-9][A-Za-z0-9._+\-/]*|[A-Za-z]+[-/][A-Za-z0-9._+\-/]+)\b/g)?.forEach((term) => remember(term, 3));
+        [...source.matchAll(/\b([A-Z][A-Za-z0-9.+/-]+(?:\s+[A-Z][A-Za-z0-9.+/-]+){1,3})\b/g)].forEach((match) => remember(match[1], 3));
       });
       [...fullText.matchAll(/[“「『《]([^”」』》\n]{2,12})[”」』》]/g)].forEach((match) => remember(match[1], 3));
     });
@@ -636,7 +685,8 @@
       }
     };
 
-    addMatches(/\b([A-Za-z][A-Za-z0-9._+\-/]{2,24})\b/g, 4.8);
+    addMatches(/\b((?:[A-Z]{2,}[A-Za-z0-9._+\-/]*|[A-Za-z]+[0-9][A-Za-z0-9._+\-/]*|[A-Za-z]+[-/][A-Za-z0-9._+\-/]+))\b/g, 4.8);
+    addMatches(/\b([A-Z][A-Za-z0-9.+/-]+(?:\s+[A-Z][A-Za-z0-9.+/-]+){1,3})\b/g, 4.75);
     addMatches(/(?:^|[。！？；]\s*)([\u3400-\u9fffA-Za-z][\u3400-\u9fffA-Za-z0-9·+\-/]{1,7})(?=[：:])/g, 4.7);
     documentConcepts.forEach((term, index) => {
       let start = text.indexOf(term);
@@ -731,6 +781,7 @@
   function processBlockNatively(block, settings, documentConcepts, rangesByName, remainingTotal) {
     const text = block.textContent?.replace(/\s+/g, " ").trim() || "";
     if (text.length < 8 || remainingTotal <= 0) return 0;
+    if (document.documentElement.dataset.adhdScript === "latin" && /^H[1-6]$/.test(block.tagName)) return 0;
     const maxPerBlock = Math.max(1, Math.min(14, Math.round(1 + settings.emphasisDensity / 10)));
     let used = 0;
     textNodesWithin(block).forEach((node) => {
