@@ -16,7 +16,7 @@
 
 - `storage`：保存扩展开关和阅读参数。
 - `activeTab`、`scripting`：仅在用户主动把舒读应用到普通网页时注入本地脚本和样式。
-- `mp.weixin.qq.com`、即刻与 X / Twitter 的站点权限：在这些明确支持的站点自动运行。
+- `mp.weixin.qq.com`、`ai.candobear.com`、即刻与 X / Twitter 的站点权限：在这些明确支持的站点自动运行。
 - `open.bigmodel.cn`：仅用于用户主动发起的连接测试与智能译读请求。
 
 ## 删除数据

@@ -29,6 +29,7 @@
   };
   const AUTO_HOSTS = new Set([
     "mp.weixin.qq.com",
+    "ai.candobear.com",
     "m.okjike.com",
     "web.okjike.com",
     "okjike.com",

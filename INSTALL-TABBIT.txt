@@ -1,10 +1,10 @@
-舒读 v0.4.2 · Tabbit / Chromium 安装
+舒读 v0.4.3 · Tabbit / Chromium 安装
 
 1. 在 Tabbit 地址栏输入：chrome://extensions/
 2. 打开页面右上角的「开发者模式」
 3. 点击「加载已解压的扩展程序」
 4. 已加载过本目录时，只需点击「舒读」卡片上的「重新加载」
-5. 刷新已打开的公众号、即刻或 X/Twitter 页面
+5. 刷新已打开的公众号、AI 内参、即刻或 X/Twitter 页面
 
 如果 chrome://extensions/ 没有打开：
 从 Tabbit 菜单进入「扩展程序」→「管理扩展程序」，再继续第 2 步。

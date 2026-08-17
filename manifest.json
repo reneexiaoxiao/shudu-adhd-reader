@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "舒读 · ADHD 网页阅读器",
-  "version": "0.4.2",
-  "description": "优化公众号、即刻、X/Twitter 与普通文章页，并提供 ADHD 友好的分级智能译读。",
+  "version": "0.4.3",
+  "description": "优化公众号、AI 内参、即刻、X/Twitter 与普通文章页，并提供 ADHD 友好的分级智能译读。",
   "permissions": ["storage", "activeTab", "scripting"],
   "host_permissions": [
     "https://mp.weixin.qq.com/*",
@@ -11,6 +11,7 @@
     "https://okjike.com/*",
     "https://x.com/*",
     "https://twitter.com/*",
+    "https://ai.candobear.com/*",
     "https://open.bigmodel.cn/*"
   ],
   "background": {
@@ -40,7 +41,8 @@
         "https://web.okjike.com/*",
         "https://okjike.com/*",
         "https://x.com/*",
-        "https://twitter.com/*"
+        "https://twitter.com/*",
+        "https://ai.candobear.com/*"
       ],
       "css": ["reader.css", "translation.css"],
       "js": ["translation-core.js", "content.js", "translation.js"],

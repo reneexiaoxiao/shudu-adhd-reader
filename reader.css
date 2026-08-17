@@ -117,7 +117,7 @@
   font-family: inherit !important;
 }
 
-:root.adhd-reader-enabled:is([data-adhd-site="wechat"], [data-adhd-site="generic"]) .adhd-reader-content p {
+:root.adhd-reader-enabled:is([data-adhd-site="wechat"], [data-adhd-site="neican"], [data-adhd-site="generic"]) .adhd-reader-content p {
   margin-block: 0 var(--adhd-paragraph-gap) !important;
   padding-block: 0 !important;
   min-block-size: 0 !important;
@@ -199,6 +199,15 @@
 
 :root.adhd-reader-enabled[data-adhd-site="jike"] .adhd-reader-content {
   margin-block: 0.4em 0.75em !important;
+}
+
+:root.adhd-reader-enabled[data-adhd-site="neican"] .adhd-reader-shell {
+  min-inline-size: 0 !important;
+  padding-inline: clamp(20px, 2.5vw, 48px) !important;
+}
+
+:root.adhd-reader-enabled[data-adhd-site="neican"] .adhd-reader-content {
+  margin-inline: auto !important;
 }
 
 :root.adhd-reader-enabled[data-adhd-site="x"] .adhd-reader-surface {

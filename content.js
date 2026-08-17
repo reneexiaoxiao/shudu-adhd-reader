@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const CONTENT_VERSION = "0.4.2";
+  const CONTENT_VERSION = "0.4.3";
   if (globalThis.__SHUDU_READER_CONTENT_VERSION__ === CONTENT_VERSION) return;
   if (globalThis.__SHUDU_READER_LOADED__ && !globalThis.__SHUDU_READER_CONTENT_VERSION__) return;
   const previousCleanup = globalThis.__SHUDU_READER_CLEANUP__;
@@ -41,9 +41,25 @@
     wechat: "微信公众号",
     jike: "即刻",
     x: "X / Twitter",
+    neican: "AI 内参",
     generic: "普通文章页"
   };
-  const SITE_WIDTH_CAPS = { wechat: 2400, jike: 960, x: 840, generic: 1100 };
+  const SITE_WIDTH_CAPS = { wechat: 2400, jike: 960, x: 840, neican: 1800, generic: 1100 };
+  const GENERIC_ARTICLE_SELECTOR = [
+    "article",
+    "[itemprop='articleBody']",
+    ".entry-content",
+    ".post-content",
+    ".post-body",
+    ".article-content",
+    ".article-body",
+    ".blog-content",
+    ".story-content",
+    ".story-body",
+    ".prose",
+    ".markdown-body"
+  ].join(", ");
+  const GENERIC_DISCOVERY_SELECTOR = `${GENERIC_ARTICLE_SELECTOR}, main, [role='main']`;
   const FONT_TARGET_SELECTOR = "p, section, div, span, strong, em, blockquote, ul, ol, li, a, h1, h2, h3, h4, h5, h6";
   const MUTATION_IGNORE_SELECTOR = "#renee-selection-toolbar-host, #renee-feed-toolbar-host, [data-adhd-reader-ui='true'], [data-shudu-translation], [data-shudu-translation-toast]";
   const FONT_STACKS = Object.freeze({
@@ -188,6 +204,7 @@
     if (hostname === "mp.weixin.qq.com") return "wechat";
     if (hostname === "m.okjike.com" || hostname === "web.okjike.com" || hostname === "okjike.com") return "jike";
     if (hostname === "x.com" || hostname.endsWith(".x.com") || hostname === "twitter.com" || hostname.endsWith(".twitter.com")) return "x";
+    if (hostname === "ai.candobear.com") return "neican";
     return "generic";
   }
 
@@ -196,11 +213,11 @@
     if (textLength < 100) return -Infinity;
     const paragraphCount = element.querySelectorAll("p, blockquote, li").length;
     const headingCount = element.querySelectorAll("h1, h2, h3").length;
-    const semanticBoost = element.matches("article, .entry-content, .post-content, .article-content, .blog-content, .prose") ? 520 : 0;
+    const semanticBoost = element.matches(GENERIC_ARTICLE_SELECTOR) ? 520 : 0;
     const linkTextLength = [...element.querySelectorAll("a")]
       .reduce((sum, link) => sum + meaningfulText(link).length, 0);
     const linkRatio = linkTextLength / Math.max(textLength, 1);
-    const broadMainPenalty = element.matches("main, [role='main']") && element.querySelector("article, .entry-content, .post-content, .article-content, .blog-content, .prose")
+    const broadMainPenalty = element.matches("main, [role='main']") && element.querySelector(GENERIC_ARTICLE_SELECTOR)
       ? 1800
       : 0;
     return textLength + paragraphCount * 140 + headingCount * 80 + semanticBoost - linkRatio * textLength * 1.5 - broadMainPenalty;
@@ -301,11 +318,30 @@
     };
   }
 
+  function discoverNeican() {
+    if (!/^\/neican\/(?:articles|share)\//.test(location.pathname)) {
+      return { site: "neican", shells: [], surfaces: [], contents: [] };
+    }
+    const contents = [...document.querySelectorAll(".prose.entry, .prose")]
+      .filter((element) => !element.closest("aside, nav, footer, [role='dialog']"))
+      .map((element) => ({ element, score: genericCandidateScore(element) }))
+      .filter(({ score }) => score > 100)
+      .sort((left, right) => right.score - left.score);
+    const content = contents[0]?.element || null;
+    const shell = content?.closest("[class~='max-w-3xl']") || content?.closest("main, [role='main']") || content;
+    return {
+      site: "neican",
+      shells: uniqueElements([shell]),
+      surfaces: uniqueElements([content]),
+      contents: uniqueElements([content])
+    };
+  }
+
   function discoverGeneric() {
     const candidates = uniqueElements([
-      ...document.querySelectorAll("article, .entry-content, .post-content, .article-content, .blog-content, .prose, main, [role='main']")
+      ...document.querySelectorAll(GENERIC_DISCOVERY_SELECTOR)
     ]).filter((element) => !element.closest("nav, aside, footer"));
-    const preferred = candidates.filter((element) => element.matches("article, .entry-content, .post-content, .article-content, .blog-content, .prose"));
+    const preferred = candidates.filter((element) => element.matches(GENERIC_ARTICLE_SELECTOR));
     const ranked = preferred.some((element) => genericCandidateScore(element) > 100) ? preferred : candidates;
     const best = ranked
       .map((element) => ({ element, score: genericCandidateScore(element) }))
@@ -320,6 +356,7 @@
     if (site === "wechat") return discoverWechat();
     if (site === "jike") return discoverJike();
     if (site === "x") return discoverX();
+    if (site === "neican") return discoverNeican();
     return discoverGeneric();
   }
 
@@ -441,7 +478,7 @@
 
   function applyTypographyHierarchy(settings) {
     clearTypographyHierarchy();
-    if (!settings.enabled || !["wechat", "generic"].includes(currentContext.site)) return;
+    if (!settings.enabled || !["wechat", "neican", "generic"].includes(currentContext.site)) return;
 
     currentContext.contents.forEach((content) => {
       const blocks = typographyLeafBlocks(content);

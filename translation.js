@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const TRANSLATION_VERSION = "0.4.2";
+  const TRANSLATION_VERSION = "0.4.3";
   if (globalThis.__SHUDU_TRANSLATION_VERSION__ === TRANSLATION_VERSION) return;
   try { globalThis.__SHUDU_TRANSLATION_CLEANUP__?.(); } catch {}
   globalThis.__SHUDU_TRANSLATION_VERSION__ = TRANSLATION_VERSION;
@@ -81,7 +81,7 @@
     const readerRoots = [...document.querySelectorAll(".adhd-reader-content")]
       .filter((root) => !root.closest("aside, nav, footer"));
     if (readerRoots.length) return readerRoots;
-    const fallbacks = [...document.querySelectorAll("article, .entry-content, .post-content, .article-content, .blog-content, .prose, main, [role='main']")]
+    const fallbacks = [...document.querySelectorAll("article, [itemprop='articleBody'], .entry-content, .post-content, .post-body, .article-content, .article-body, .blog-content, .story-content, .story-body, .prose, .markdown-body, main, [role='main']")]
       .filter((root) => !root.closest("aside, nav, footer"));
     return fallbacks.length ? fallbacks.slice(0, 3) : [document.body];
   }
