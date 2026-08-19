@@ -201,6 +201,30 @@
   margin-block: 0.4em 0.75em !important;
 }
 
+:root.adhd-reader-enabled[data-adhd-site="jike"][data-adhd-jike-view="desktop-detail"] {
+  --page-container-width: min(var(--adhd-site-width), calc(100vw - 180px)) !important;
+}
+
+:root.adhd-reader-enabled[data-adhd-site="jike"][data-adhd-jike-view="desktop-detail"] .adhd-reader-shell {
+  inline-size: min(calc(100vw - 180px), var(--adhd-site-width)) !important;
+  max-inline-size: var(--adhd-site-width) !important;
+  margin-inline: auto !important;
+}
+
+:root.adhd-reader-enabled[data-adhd-site="jike"][data-adhd-jike-view="desktop-detail"] .adhd-reader-surface {
+  padding-inline: clamp(18px, 2vw, 32px) !important;
+}
+
+@media (min-width: 1280px) {
+  :root.adhd-reader-enabled[data-adhd-site="jike"][data-adhd-jike-view="desktop-detail"] .adhd-reader-content.adhd-reader-jike-columns {
+    column-width: 25rem;
+    column-count: 2;
+    column-gap: clamp(40px, 4vw, 64px);
+    column-rule: 1px solid rgba(120, 120, 120, 0.14);
+    column-fill: balance;
+  }
+}
+
 :root.adhd-reader-enabled[data-adhd-site="neican"] .adhd-reader-shell {
   min-inline-size: 0 !important;
   padding-inline: clamp(20px, 2.5vw, 48px) !important;

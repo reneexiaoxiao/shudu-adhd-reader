@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const CONTENT_VERSION = "0.4.4";
+  const CONTENT_VERSION = "0.4.5";
   if (globalThis.__SHUDU_READER_CONTENT_VERSION__ === CONTENT_VERSION) return;
   if (globalThis.__SHUDU_READER_LOADED__ && !globalThis.__SHUDU_READER_CONTENT_VERSION__) return;
   const previousCleanup = globalThis.__SHUDU_READER_CLEANUP__;
@@ -44,7 +44,7 @@
     neican: "AI 内参",
     generic: "普通文章页"
   };
-  const SITE_WIDTH_CAPS = { wechat: 2400, jike: 960, x: 840, neican: 1800, generic: 1100 };
+  const SITE_WIDTH_CAPS = { wechat: 2400, jike: 1400, x: 840, neican: 1800, generic: 1100 };
   const GENERIC_ARTICLE_SELECTOR = [
     "article",
     "[itemprop='articleBody']",
@@ -233,7 +233,65 @@
     return { site: "wechat", shells: uniqueElements([shell]), surfaces: uniqueElements([content]), contents: uniqueElements([content]) };
   }
 
+  function isJikeDesktopPostRoute() {
+    return /^\/u\/[^/]+\/(?:post|repost)\/[^/]+\/?$/.test(location.pathname);
+  }
+
+  function findJikeDesktopTextRoot(postCard) {
+    const styledCandidates = [...postCard.querySelectorAll("div, p")]
+      .filter((element) => {
+        if (element.closest("aside, nav, footer, [role='dialog']")) return false;
+        if (meaningfulText(element).length < 30) return false;
+        return getComputedStyle(element).whiteSpace === "break-spaces";
+      })
+      .sort((left, right) => meaningfulText(right).length - meaningfulText(left).length);
+    if (styledCandidates[0]) return styledCandidates[0];
+
+    const moduleContent = [...postCard.querySelectorAll("[class*='_content_']")]
+      .filter((element) => meaningfulText(element).length >= 30)
+      .sort((left, right) => meaningfulText(right).length - meaningfulText(left).length)[0];
+    if (moduleContent) return moduleContent;
+
+    return [...postCard.querySelectorAll("div, p")]
+      .filter((element) => {
+        const ownText = [...element.childNodes]
+          .filter((node) => node.nodeType === Node.TEXT_NODE)
+          .map((node) => node.nodeValue || "")
+          .join("")
+          .trim();
+        return ownText.length >= 30;
+      })
+      .sort((left, right) => meaningfulText(right).length - meaningfulText(left).length)[0] || null;
+  }
+
+  function findJikeDesktopPage(detailContainer) {
+    let candidate = detailContainer;
+    while (candidate && candidate !== document.body) {
+      const detailHeader = [...candidate.querySelectorAll("header")]
+        .find((header) => meaningfulText(header).includes("动态详情"));
+      if (detailHeader) return candidate;
+      candidate = candidate.parentElement;
+    }
+    return detailContainer;
+  }
+
   function discoverJike() {
+    if (isJikeDesktopPostRoute()) {
+      const postCard = [...document.querySelectorAll("[class*='_postCard_']")]
+        .filter((element) => !element.closest("[role='dialog']") && meaningfulText(element).length >= 30)
+        .sort((left, right) => meaningfulText(right).length - meaningfulText(left).length)[0] || null;
+      const textRoot = postCard ? findJikeDesktopTextRoot(postCard) : null;
+      const detailContainer = postCard?.parentElement || null;
+      const page = detailContainer ? findJikeDesktopPage(detailContainer) : null;
+      return {
+        site: "jike",
+        view: "desktop-detail",
+        shells: uniqueElements([page]),
+        surfaces: uniqueElements([postCard]),
+        contents: uniqueElements([textRoot])
+      };
+    }
+
     const postPage = document.querySelector(".post-page");
     const postWrap = postPage?.querySelector(".post-wrap") || document.querySelector(".post-wrap");
     let textRoot = postWrap?.querySelector(".text .wrap") || postWrap?.querySelector(".text") || null;
@@ -251,6 +309,7 @@
     }
     return {
       site: "jike",
+      view: postPage || postWrap ? "mobile-detail" : "unknown",
       shells: uniqueElements([postPage || postWrap]),
       surfaces: uniqueElements([postWrap || textRoot]),
       contents: uniqueElements([textRoot])
@@ -383,6 +442,16 @@
         roles.add(role);
         element.setAttribute(TARGET_ATTR, [...roles].join(" "));
       });
+    });
+  }
+
+  function syncJikeDesktopColumns(context) {
+    document.querySelectorAll(".adhd-reader-jike-columns").forEach((element) => {
+      element.classList.remove("adhd-reader-jike-columns");
+    });
+    if (context.site !== "jike" || context.view !== "desktop-detail") return;
+    context.contents.forEach((content) => {
+      content.classList.toggle("adhd-reader-jike-columns", meaningfulText(content).length >= 520);
     });
   }
 
@@ -542,10 +611,12 @@
   function applyLayout(settings) {
     currentContext = discoverContext();
     syncTargetClasses(currentContext);
+    syncJikeDesktopColumns(currentContext);
     const root = document.documentElement;
     root.classList.toggle(ROOT_CLASS, settings.enabled);
     root.classList.toggle("adhd-reader-focus", settings.enabled && settings.focusEnabled);
     root.dataset.adhdSite = currentContext.site;
+    root.dataset.adhdJikeView = currentContext.site === "jike" ? currentContext.view || "unknown" : "none";
     root.dataset.adhdScript = dominantContentScript();
     root.dataset.adhdFont = settings.fontFamily;
     root.dataset.adhdMarker = settings.markerColor;

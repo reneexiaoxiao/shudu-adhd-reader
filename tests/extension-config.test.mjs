@@ -9,12 +9,23 @@ const content = await readFile(new URL("../translation.js", import.meta.url), "u
 const reader = await readFile(new URL("../content.js", import.meta.url), "utf8");
 const readerCss = await readFile(new URL("../reader.css", import.meta.url), "utf8");
 
-test("0.4.4 打包智能译读脚本、样式、后台和快捷键", () => {
-  assert.equal(manifest.version, "0.4.4");
+test("0.4.5 打包智能译读脚本、样式、后台和快捷键", () => {
+  assert.equal(manifest.version, "0.4.5");
   assert.equal(manifest.background.service_worker, "background.js");
   assert.deepEqual(manifest.content_scripts[0].js, ["translation-core.js", "content.js", "translation.js"]);
   assert.deepEqual(manifest.content_scripts[0].css, ["reader.css", "translation.css"]);
   assert.equal(manifest.commands["toggle-translation"].suggested_key.mac, "Alt+Shift+F");
+});
+
+test("即刻新版桌面详情会扩宽正文，并让长帖在宽屏最多分成两栏", () => {
+  assert.match(reader, /function isJikeDesktopPostRoute/);
+  assert.match(reader, /\[class\*='_postCard_'\]/);
+  assert.match(reader, /whiteSpace === "break-spaces"/);
+  assert.match(reader, /jike: 1400/);
+  assert.match(readerCss, /data-adhd-jike-view="desktop-detail"/);
+  assert.match(readerCss, /--page-container-width:/);
+  assert.match(readerCss, /column-width: 25rem/);
+  assert.match(readerCss, /column-count: 2/);
 });
 
 test("AI 内参自动运行且只扩展文章列，不把侧栏识别为正文", () => {
