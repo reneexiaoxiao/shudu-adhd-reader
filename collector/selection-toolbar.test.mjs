@@ -8,27 +8,45 @@ const sandbox = {};
 sandbox.globalThis = sandbox;
 vm.runInNewContext(source, sandbox);
 const { computePosition, selectionAnchor, nearbyImageIndexes } = sandbox.ShuduSelectionToolbar;
-const { computeDockPosition } = sandbox.ShuduSelectionToolbar;
+const { computeSelectionPosition } = sandbox.ShuduSelectionToolbar;
 
-test("选区在上半屏时浮条停靠底边，给原生菜单留出空间", () => {
-  const result = computeDockPosition({ top: 110, bottom: 160 }, { width: 620, height: 42 }, { width: 1200, height: 800 });
-  assert.equal(result.placement, "dock-bottom");
-  assert.equal(result.top, 746);
-  assert.ok(result.top > 160 + 80);
+test("选中文字后小球紧邻选区末端，不跑到屏幕边缘", () => {
+  const result = computeSelectionPosition({ top: 110, bottom: 160, right: 400 }, { width: 34, height: 34 }, { width: 1200, height: 800 });
+  assert.equal(result.placement, "selection-below");
+  assert.equal(result.top, 168);
+  assert.equal(result.left, 408);
 });
 
-test("选区靠近底部时浮条停靠顶边", () => {
-  const result = computeDockPosition({ top: 650, bottom: 760 }, { width: 620, height: 42 }, { width: 1200, height: 800 });
-  assert.equal(result.placement, "dock-top");
-  assert.equal(result.top, 12);
-  assert.ok(result.top + 42 < 650 - 80);
+test("选区靠近底部时只翻到选区上方，不跳到屏幕顶部", () => {
+  const result = computeSelectionPosition({ top: 740, bottom: 760, right: 700 }, { width: 620, height: 46 }, { width: 1200, height: 800 });
+  assert.equal(result.placement, "selection-above");
+  assert.equal(result.top, 686);
 });
 
-test("展开图片和批注后仍按完整选区避让，窄屏位置在视口内", () => {
-  const result = computeDockPosition({ top: 250, bottom: 580 }, { width: 294, height: 90 }, { width: 320, height: 640 });
-  assert.equal(result.placement, "dock-top");
+test("展开图片和批注后窄屏位置仍在视口内", () => {
+  const result = computeSelectionPosition({ top: 550, bottom: 580, right: 290 }, { width: 294, height: 90 }, { width: 320, height: 640 });
+  assert.equal(result.placement, "selection-above");
   assert.ok(result.left >= 0 && result.left + 294 <= 320);
-  assert.ok(result.top + 90 < 250);
+  assert.ok(result.top + 90 < 550);
+});
+
+test("展开和收起时小球仍在同一选区旁", () => {
+  const rect = { top: 300, bottom: 326, right: 750 };
+  const view = { width: 1200, height: 800 };
+  const ball = computeSelectionPosition(rect, { width: 34, height: 34 }, view);
+  const menu = computeSelectionPosition(rect, { width: 620, height: 46 }, view);
+  assert.equal(ball.left + 34, menu.left + 620);
+  assert.equal(ball.top, menu.top);
+});
+
+test("菜单默认收在球里，仅显式点击才展开", async () => {
+  const content = await readFile(new URL('./content.js', import.meta.url), 'utf8');
+  const creation = content.slice(content.indexOf('function showToolbar('), content.indexOf('const setExpanded ='));
+  assert.match(creation, /surface\.hidden = true/);
+  assert.match(creation, /launcher\.setAttribute\("aria-expanded", "false"\)/);
+  assert.doesNotMatch(creation, /surface\.hidden = false/);
+  assert.doesNotMatch(content, /computeDockPosition/);
+  assert.match(content, /launcher\.addEventListener\("click", \(\) => \{\s*setExpanded/);
 });
 
 test("多行划线使用最后一行作为圆点锚点", () => {

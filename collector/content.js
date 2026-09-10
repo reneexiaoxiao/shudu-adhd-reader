@@ -1,5 +1,5 @@
 (() => {
-  const CONTENT_VERSION = "1.7.0";
+  const CONTENT_VERSION = "1.7.2";
   const LOCAL_API_ROOT = "http://127.0.0.1:8765";
   if (globalThis.__SHUDU_COLLECTOR_CONTENT_VERSION__ === CONTENT_VERSION) return;
 
@@ -446,6 +446,20 @@
   let selectionSnapshot = null;
   let selectionTimer = 0;
   let toolbarBusy = false;
+  let collectionEnabled = false;
+  const refreshCollectionMode = () => globalThis.ShuduCollectionMode.isEnabled()
+    .then((enabled) => { collectionEnabled = enabled; })
+    .catch(() => { collectionEnabled = false; });
+  refreshCollectionMode();
+  const onCollectionModeChanged = (changes, area) => {
+    if (area !== "local" || !changes[globalThis.ShuduCollectionMode.KEY]) return;
+    collectionEnabled = false;
+    hideToolbar();
+    hideFeedToolbar();
+    refreshCollectionMode();
+  };
+  chrome.storage.onChanged.addListener(onCollectionModeChanged);
+  registerCleanup(() => chrome.storage.onChanged.removeListener(onCollectionModeChanged));
   const annotationManager = globalThis.ShuduAnnotations?.start({
     window,
     document,
@@ -453,6 +467,7 @@
     canonicalUrl,
     findArticleRoot,
     onUpdate: async (annotation) => {
+      if (!await globalThis.ShuduCollectionMode.isEnabled()) return;
       const response = await chrome.runtime.sendMessage({
         type: "SYNC_ANNOTATION_NOTE",
         data: {
@@ -534,13 +549,13 @@
       if (!toolbarHost) return;
       const width = toolbarHost.offsetWidth || 32;
       const height = toolbarHost.offsetHeight || 32;
-      const position = globalThis.ShuduSelectionToolbar?.computeDockPosition(
-        selectionSnapshot?.selectionBounds || rect,
+      const position = globalThis.ShuduSelectionToolbar?.computeSelectionPosition(
+        rect,
         { width, height },
         { width: window.innerWidth, height: window.innerHeight }
       );
-      const left = position?.left ?? Math.max(8, (window.innerWidth - width) / 2);
-      const top = position?.top ?? Math.max(8, window.innerHeight - height - 12);
+      const left = position?.left ?? Math.max(8, Math.min(window.innerWidth - width - 8, rect.right + 8));
+      const top = position?.top ?? Math.max(8, Math.min(window.innerHeight - height - 8, rect.bottom + 8));
       toolbarHost.style.left = `${left}px`;
       toolbarHost.style.top = `${top}px`;
     });
@@ -574,6 +589,8 @@
     buttons.forEach((button) => { button.disabled = true; });
     toolbarStatus(shadow, "保存中…", "loading");
     try {
+      const collect = await globalThis.ShuduCollectionMode.isEnabled();
+      if (!collect && !annotationStyle) throw new Error("收藏同步已关闭，请在舒读中开启后再收藏");
       if (annotationStyle && !annotationSaved) {
         if (!annotationManager || !selection.range) {
           throw new Error("划线功能尚未加载，请刷新页面后重试");
@@ -587,6 +604,7 @@
         selection.savedAnnotationKey = annotationKey;
         annotationSaved = true;
       }
+      if (collect) {
       const pageData = {
         ...await extractPageData(),
         selection: snapshot.selection,
@@ -603,7 +621,10 @@
         personalize
       });
       if (!response?.ok) throw new Error(response?.error || "保存失败");
-      const savedMessage = personalize
+      }
+      const savedMessage = !collect
+        ? (note ? "批注已保存到本机" : "划线已保存到本机")
+        : personalize
         ? "已收藏，正在分析和你的关系"
         : conceptMap
           ? "已收藏，概念地图同步中"
@@ -731,15 +752,15 @@
     const surface = document.createElement("div");
     surface.className = "surface";
     surface.id = "shudu-selection-actions";
-    surface.hidden = false;
+    surface.hidden = true;
     surface.setAttribute("role", "toolbar");
     surface.setAttribute("aria-label", "舒读划线、批注与收藏");
 
-    const launcher = actionButton("toggle", "收起划线收藏菜单");
+    const launcher = actionButton("toggle", "展开划线收藏菜单");
     launcher.className = "launcher";
-    launcher.setAttribute("aria-label", "收起划线收藏菜单");
+    launcher.setAttribute("aria-label", "展开划线收藏菜单");
     launcher.setAttribute("aria-controls", surface.id);
-    launcher.setAttribute("aria-expanded", "true");
+    launcher.setAttribute("aria-expanded", "false");
 
     const saveButton = actionButton("save", "收藏这段划线并生成辅助消化建议");
     const saveIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -847,6 +868,11 @@
       status
     );
     shell.append(launcher, surface);
+    if (!collectionEnabled) {
+      surface.replaceChildren(...markButtons, annotateButton, composer, status);
+      launcher.title = "展开划线批注菜单";
+      launcher.setAttribute("aria-label", launcher.title);
+    }
     shadow.append(style, shell);
     document.documentElement.append(toolbarHost);
 
@@ -865,8 +891,9 @@
     const setExpanded = (expanded) => {
       surface.hidden = !expanded;
       launcher.setAttribute("aria-expanded", String(expanded));
-      launcher.setAttribute("aria-label", expanded ? "收起划线收藏菜单" : "展开划线收藏菜单");
-      launcher.title = expanded ? "收起划线收藏菜单" : "展开划线收藏菜单";
+      const menuName = collectionEnabled ? "划线收藏菜单" : "划线批注菜单";
+      launcher.setAttribute("aria-label", `${expanded ? "收起" : "展开"}${menuName}`);
+      launcher.title = launcher.getAttribute("aria-label");
       positionToolbar(snapshot.rect);
     };
     launcher.addEventListener("click", () => {
@@ -888,13 +915,13 @@
         updateImageToggle();
       });
     });
-    shadow.querySelector('[data-action="save"]').addEventListener("click", () => {
+    saveButton.addEventListener("click", () => {
       saveInlineSelection(shadow);
     });
-    shadow.querySelector('[data-action="personal"]').addEventListener("click", () => {
+    personalButton.addEventListener("click", () => {
       saveInlineSelection(shadow, "", { personalize: true });
     });
-    shadow.querySelector('[data-action="concept"]').addEventListener("click", () => {
+    conceptButton.addEventListener("click", () => {
       saveInlineSelection(shadow, "", { conceptMap: true });
     });
     shadow.querySelectorAll('[data-action="mark"]').forEach((button) => {
@@ -909,14 +936,14 @@
       input.setAttribute("aria-label", "划线批注");
       saveNoteButton.textContent = "存批注";
       shadow.querySelector('[data-action="annotate"]').hidden = true;
-      shadow.querySelector('[data-action="note"]').hidden = false;
+      noteButton.hidden = false;
       toolbarStatus(shadow, "");
       requestAnimationFrame(() => {
         input.focus();
         positionToolbar(snapshot.rect);
       });
     });
-    shadow.querySelector('[data-action="note"]').addEventListener("click", () => {
+    noteButton.addEventListener("click", () => {
       const composer = shadow.querySelector("[data-composer]");
       composer.hidden = false;
       composer.dataset.mode = "collection";
@@ -1115,7 +1142,7 @@
   }
 
   function showFeedToolbar(root) {
-    if (!root || feedToolbarBusy) return;
+    if (!collectionEnabled || !root || feedToolbarBusy) return;
     keepFeedToolbarVisible();
     if (feedToolbarHost && !feedToolbarHost.hidden && feedItemRoot === root) {
       if (!feedItemSnapshot) refreshFeedItemSnapshot();
@@ -1243,6 +1270,7 @@
   const activeFeedSiteType = feedSiteType();
   if (activeFeedSiteType) {
     addManagedListener(document, "pointerover", (event) => {
+      if (!collectionEnabled) return;
       if (feedToolbarBusy || feedToolbarExpanded) return;
       if (feedToolbarHost && event.composedPath().includes(feedToolbarHost)) {
         keepFeedToolbarVisible();
@@ -1291,6 +1319,7 @@
   });
 
   async function localApi(path, body) {
+    await globalThis.ShuduCollectionMode.requireEnabled();
     const response = await fetch(`${LOCAL_API_ROOT}${path}`, {
       method: body ? "POST" : "GET",
       headers: body ? { "content-type": "application/json" } : undefined,

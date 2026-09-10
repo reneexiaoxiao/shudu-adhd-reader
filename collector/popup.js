@@ -52,6 +52,7 @@ async function extractFreshPage() {
   await chrome.scripting.executeScript({
     target: { tabId: tab.id },
     files: [
+      "collector/collection-mode.js",
       "collector/content-blocks.js",
       "collector/selection-context.js",
       "collector/selection-toolbar.js",

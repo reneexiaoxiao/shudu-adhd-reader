@@ -17,6 +17,11 @@
         </div>
         <span class="shell-version" id="extensionVersion"></span>
       </div>
+      <label class="collection-option">
+        <span>收藏同步到 Obsidian</span>
+        <input id="collectionEnabled" type="checkbox" role="switch" aria-describedby="collectionModeStatus" disabled>
+      </label>
+      <p id="collectionModeStatus" class="collection-mode-status" role="status">读取设置中…</p>
       <nav class="feature-tabs" role="tablist" aria-label="舒读功能">
         <button id="readerTab" type="button" role="tab" aria-controls="featureFrame" aria-selected="true" data-view="reader">阅读</button>
         <button id="collectorTab" type="button" role="tab" aria-controls="featureFrame" aria-selected="false" data-view="collector">收藏</button>
@@ -25,6 +30,7 @@
     <main>
       <iframe id="featureFrame" src="reader-popup.html" title="阅读设置"></iframe>
     </main>
+    <script src="collector/collection-mode.js"></script>
     <script src="popup-shell.js"></script>
   </body>
 </html>

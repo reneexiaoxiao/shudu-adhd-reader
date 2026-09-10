@@ -9,6 +9,7 @@ let wereadSyncPromise = null;
 const videoExportsInFlight = new Set();
 
 async function api(path, body) {
+  await globalThis.ShuduCollectionMode.requireEnabled();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 20000);
   try {
@@ -57,6 +58,7 @@ async function rememberVideoExport(key) {
 }
 
 async function importCompletedVideoExport(downloadId) {
+  if (!await globalThis.ShuduCollectionMode.isEnabled()) return;
   const [downloadItem] = await chrome.downloads.search({ id: downloadId });
   if (!downloadItem || downloadItem.state !== "complete") return;
   const request = globalThis.SHUDU_VIDEO_EXPORT.matchingVideoExport(downloadItem);
@@ -89,7 +91,11 @@ async function activeTab() {
   return tab;
 }
 
-function scheduleWereadSync() {
+async function scheduleWereadSync() {
+  if (!await globalThis.ShuduCollectionMode.isEnabled()) {
+    await chrome.alarms.clear(WEREAD_SYNC_ALARM);
+    return;
+  }
   chrome.alarms.create(WEREAD_SYNC_ALARM, {
     when: Date.now() + 60 * 1000,
     periodInMinutes: 15
@@ -130,6 +136,7 @@ async function sendWereadSyncCommand(tabId) {
     await chrome.scripting.executeScript({
       target: { tabId },
       files: [
+        "collector/collection-mode.js",
         "collector/content-blocks.js",
         "collector/selection-context.js",
         "collector/selection-toolbar.js",
@@ -144,6 +151,7 @@ async function sendWereadSyncCommand(tabId) {
 }
 
 async function runWereadSync() {
+  if (!await globalThis.ShuduCollectionMode.isEnabled()) return { ok: true, skipped: true };
   const queueResult = await api("/weread-upload-queue");
   const pending = Array.isArray(queueResult.items) ? queueResult.items : [];
   if (!pending.length) return { ok: true, skipped: true, pending: 0 };
@@ -297,6 +305,7 @@ async function hydrateYoutubeData(data) {
 }
 
 async function savePayload(data, options = {}) {
+  await globalThis.ShuduCollectionMode.requireEnabled();
   const hydrated = await hydrateYoutubeData(data);
   const mode = options.mode || (hydrated.selection ? "selection" : "page");
   if (mode === "selection" && !hydrated.selection) throw new Error("请先划选需要收藏的文字");
@@ -314,6 +323,7 @@ async function savePayload(data, options = {}) {
 
 async function quickSave(tab, mode, options = {}) {
   try {
+    await globalThis.ShuduCollectionMode.requireEnabled();
     const data = await extractFromTab(tab.id);
     const result = await savePayload(data, {
       mode,
@@ -335,9 +345,10 @@ async function quickSave(tab, mode, options = {}) {
   }
 }
 
-chrome.runtime.onInstalled.addListener(() => {
-
+async function refreshCollectionMenus() {
+  const enabled = await globalThis.ShuduCollectionMode.isEnabled();
   chrome.contextMenus.removeAll(() => {
+    if (!enabled) return;
     chrome.contextMenus.create({
       id: "shudu-save-page",
       title: "收藏网页到本地知识库",
@@ -359,9 +370,15 @@ chrome.runtime.onInstalled.addListener(() => {
       contexts: ["page", "selection", "link"]
     });
   });
+}
+
+chrome.runtime.onInstalled.addListener(() => {
+  refreshCollectionMenus().catch(() => {});
+
 });
 
 chrome.runtime.onStartup.addListener(() => {
+  refreshCollectionMenus().catch(() => {});
 
 });
 
@@ -390,6 +407,8 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 });
 
 chrome.commands.onCommand.addListener(async (command) => {
+  if (!["quick-save-page", "quick-save-selection"].includes(command)) return;
+  if (!await globalThis.ShuduCollectionMode.isEnabled()) return;
   const tab = await activeTab();
   const mode = command === "quick-save-selection" ? "selection" : "page";
   quickSave(tab, mode).catch(() => {});
@@ -413,6 +432,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   // 与译读后台共存时，只处理收藏模块自己的消息。
   if (!COLLECTOR_MESSAGE_TYPES.has(message?.type)) return false;
   (async () => {
+    await globalThis.ShuduCollectionMode.requireEnabled();
     if (message?.type === "POPUP_EXTRACT") {
       const tab = await activeTab();
       return { ok: true, data: await extractFromTab(tab.id) };
@@ -485,5 +505,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     .catch((error) => sendResponse({ ok: false, error: error.message }));
   return true;
 });
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "local" || !changes[globalThis.ShuduCollectionMode.KEY]) return;
+  refreshCollectionMenus().catch(() => {});
+
+});
+refreshCollectionMenus().catch(() => {});
 
 })();

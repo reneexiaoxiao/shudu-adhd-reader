@@ -8,18 +8,19 @@ const actions = source.slice(source.indexOf("  async function saveInlineSelectio
   source.indexOf("  function showToolbar("));
 
 function setup() {
-  const calls = { annotations: [], collections: [], statuses: [] };
-  const state = { collectionOk: true, annotationError: false };
+  const calls = { annotations: [], collections: [], statuses: [], extractions: 0 };
+  const state = { collectionOk: true, annotationError: false, enabled: true };
   const buttons = [{ disabled: false }];
   const shadow = { querySelectorAll: () => buttons };
   const sandbox = {
+    ShuduCollectionMode: { isEnabled: async () => state.enabled },
     selectionSnapshot: { selection: "选中的正文", selectionContext: "上下文", range: {}, nearbyImages: [] },
     toolbarBusy: false, selectionTimer: null,
     clearTimeout() {}, setTimeout() {}, hideToolbar() {},
     window: { getSelection: () => ({ removeAllRanges() {} }) },
     limitText: (text, length) => text.slice(0, length),
     toolbarStatus: (_shadow, message, status) => calls.statuses.push({ message, status }),
-    extractPageData: async () => ({ title: "文章", url: "https://example.com/article" }),
+    extractPageData: async () => { calls.extractions++; return { title: "文章", url: "https://example.com/article" }; },
     annotationManager: {
       async create(annotation) {
         if (state.annotationError) throw new Error("划线保存失败");
@@ -82,4 +83,25 @@ test("连续点击划线只触发一份划线和一份收藏", async () => {
   await Promise.all([sandbox.saveInlineAnnotation(shadow), sandbox.saveInlineAnnotation(shadow)]);
   assert.equal(calls.annotations.length, 1);
   assert.equal(calls.collections.length, 1);
+});
+
+test("关闭收藏时划线和评论保存在本机，不提取网页或调用收藏", async () => {
+  const { sandbox, shadow, calls, state } = setup();
+  state.enabled = false;
+  await sandbox.saveInlineAnnotation(shadow, "marker-yellow", "本机想法");
+  assert.equal(calls.annotations.length, 1);
+  assert.equal(calls.annotations[0].note, "本机想法");
+  assert.equal(calls.collections.length, 0);
+  assert.equal(calls.extractions, 0);
+  assert.equal(calls.statuses.at(-1).message, "批注已保存到本机");
+});
+
+test("关闭收藏时旧菜单的收藏动作也不能发送请求", async () => {
+  const { sandbox, shadow, calls, state } = setup();
+  state.enabled = false;
+  await sandbox.saveInlineSelection(shadow);
+  assert.equal(calls.collections.length, 0);
+  assert.equal(calls.annotations.length, 0);
+  assert.equal(calls.extractions, 0);
+  assert.equal(calls.statuses.at(-1).status, "error");
 });

@@ -13,8 +13,8 @@ const content = await readFile(new URL("../translation.js", import.meta.url), "u
 const reader = await readFile(new URL("../content.js", import.meta.url), "utf8");
 const readerCss = await readFile(new URL("../reader.css", import.meta.url), "utf8");
 
-test("0.7.0 将阅读、译读、批注与收藏打包到同一个扩展", () => {
-  assert.equal(manifest.version, "0.7.0");
+test("0.7.2 将阅读、译读、批注与收藏打包到同一个扩展", () => {
+  assert.equal(manifest.version, "0.7.2");
   assert.equal(manifest.background.service_worker, "unified-worker.js");
   assert.deepEqual(manifest.content_scripts[1].js, ["translation-core.js", "content.js", "translation.js"]);
   assert.deepEqual(manifest.content_scripts[1].css, ["reader.css", "translation.css"]);

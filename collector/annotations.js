@@ -598,7 +598,7 @@
         save.disabled = true;
         remove.disabled = true;
         textarea.disabled = true;
-        save.textContent = "同步中…";
+        save.textContent = "保存中…";
         status.textContent = "";
         try {
           await this.update(id, { style: selectedStyle, note: textarea.value });

@@ -82,6 +82,12 @@ body {
 
 main { background: #f4f3ee; }
 
+.collection-option { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; cursor: pointer; }
+.collection-option input { width: 18px; height: 18px; accent-color: #39745a; cursor: pointer; }
+.collection-mode-status { margin: -6px 0 0; font-size: 11px; line-height: 1.5; color: inherit; }
+.feature-tabs button[hidden] { display: none; }
+.feature-tabs.local-only { grid-template-columns: 1fr; }
+
 iframe {
   display: block;
   width: 100%;

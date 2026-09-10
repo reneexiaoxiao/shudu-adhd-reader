@@ -45,19 +45,22 @@
     };
   }
 
-  function computeDockPosition(rect, size, viewport) {
-    const margin = 12;
+  function computeSelectionPosition(rect, size, viewport) {
+    const margin = 8;
+    const gap = 8;
     const viewportWidth = Math.max(1, Number(viewport?.width) || 1);
     const viewportHeight = Math.max(1, Number(viewport?.height) || 1);
     const width = Math.min(Number(size?.width) || 32, Math.max(1, viewportWidth - margin * 2));
     const height = Math.min(Number(size?.height) || 32, Math.max(1, viewportHeight - margin * 2));
-    const roomAbove = Math.max(0, Number(rect?.top) || 0);
-    const roomBelow = Math.max(0, viewportHeight - (Number(rect?.bottom) || 0));
-    const atBottom = roomBelow >= roomAbove;
+    // The launcher stays near the final selected line, even when its menu expands to the left.
+    const left = (Number(rect?.right) || 0) + gap + 34 - width;
+    const below = (Number(rect?.bottom) || 0) + gap;
+    const above = (Number(rect?.top) || 0) - height - gap;
+    const fitsBelow = below + height + margin <= viewportHeight;
     return {
-      left: Math.max(0, Math.round((viewportWidth - width) / 2)),
-      top: atBottom ? Math.max(0, viewportHeight - height - margin) : Math.min(margin, Math.max(0, viewportHeight - height)),
-      placement: atBottom ? "dock-bottom" : "dock-top"
+      left: Math.max(0, Math.round(Math.max(margin, Math.min(viewportWidth - width - margin, left)))),
+      top: Math.max(0, Math.round(Math.max(margin, Math.min(viewportHeight - height - margin, fitsBelow ? below : above)))),
+      placement: fitsBelow ? "selection-below" : "selection-above"
     };
   }
 
@@ -103,5 +106,5 @@
       .map((candidate) => candidate.index);
   }
 
-  globalThis.ShuduSelectionToolbar = { computePosition, computeDockPosition, selectionAnchor, nearbyImageIndexes };
+  globalThis.ShuduSelectionToolbar = { computePosition, computeSelectionPosition, selectionAnchor, nearbyImageIndexes };
 })();
