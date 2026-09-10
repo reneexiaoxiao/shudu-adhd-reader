@@ -27,9 +27,9 @@ test("只识别以英文为主的正文", () => {
   assert.equal(core.isTranslatableText("https://example.com", "P"), false);
 });
 
-test("六级 524 档明确保留 B2+/C1 表达且不拿基础词凑数", () => {
+test("B2 进阶 档明确保留 B2+/C1 表达且不拿基础词凑数", () => {
   const prompt = core.buildPrompt({ blocks, retention: "cet6", page: { title: "Test", language: "en" } });
-  assert.match(prompt, /六级 524/);
+  assert.match(prompt, /B2 进阶/);
   assert.match(prompt, /3-5 个/);
   assert.match(prompt, /A1-B1 基础词/);
   assert.match(prompt, /一段都不能遗漏/);

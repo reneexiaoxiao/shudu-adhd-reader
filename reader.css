@@ -68,12 +68,22 @@
 
 :root.adhd-reader-enabled[data-adhd-site="wechat"] .adhd-reader-content,
 :root.adhd-reader-enabled[data-adhd-site="generic"] .adhd-reader-content {
-  color: #24272b !important;
+  color: inherit !important;
 }
 
 :root.adhd-reader-enabled .adhd-reader-content :where(p, section, div, span, strong, em, blockquote, ul, ol, li, a, h1, h2, h3, h4, h5, h6) {
   font-size: inherit !important;
   line-height: inherit !important;
+}
+
+:root.adhd-reader-enabled[data-adhd-site="wechat"] .adhd-reader-content .adhd-reader-fluid-block {
+  box-sizing: border-box !important;
+  width: auto !important;
+  inline-size: auto !important;
+  max-width: 100% !important;
+  max-inline-size: 100% !important;
+  min-width: 0 !important;
+  min-inline-size: 0 !important;
 }
 
 :root.adhd-reader-enabled[data-adhd-font="torch"] .adhd-reader-content,
@@ -215,16 +225,6 @@
   padding-inline: clamp(18px, 2vw, 32px) !important;
 }
 
-@media (min-width: 1280px) {
-  :root.adhd-reader-enabled[data-adhd-site="jike"][data-adhd-jike-view="desktop-detail"] .adhd-reader-content.adhd-reader-jike-columns {
-    column-width: 25rem;
-    column-count: 2;
-    column-gap: clamp(40px, 4vw, 64px);
-    column-rule: 1px solid rgba(120, 120, 120, 0.14);
-    column-fill: balance;
-  }
-}
-
 :root.adhd-reader-enabled[data-adhd-site="neican"] .adhd-reader-shell {
   min-inline-size: 0 !important;
   padding-inline: clamp(20px, 2.5vw, 48px) !important;
@@ -234,30 +234,22 @@
   margin-inline: auto !important;
 }
 
-:root.adhd-reader-enabled[data-adhd-site="x"] .adhd-reader-surface {
-  padding-inline: clamp(12px, 2vw, 24px) !important;
-}
-
-:root.adhd-reader-enabled[data-adhd-site="x"] .adhd-reader-shell {
-  flex: 0 0 min(calc(100vw - 260px), var(--adhd-site-width)) !important;
-}
-
-:root.adhd-reader-enabled[data-adhd-site="x"] .adhd-reader-x-hidden {
-  display: none !important;
-}
-
-:root.adhd-reader-enabled[data-adhd-site="x"] .adhd-reader-x-nav {
-  flex: 0 0 auto !important;
-}
-
-:root.adhd-reader-enabled[data-adhd-site="x"] .adhd-reader-x-lane {
-  inline-size: 100% !important;
-  max-inline-size: 100% !important;
-}
-
 :root.adhd-reader-enabled[data-adhd-site="x"] .adhd-reader-content {
   margin-block: 0.25em 0.6em !important;
   white-space: pre-wrap;
+}
+
+/* X 帖子详情：保留左侧导航，只收起相关推荐栏并把正文扩到空出的区域。 */
+:root.adhd-reader-enabled[data-adhd-site="x"][data-adhd-x-view="post-detail"] .adhd-reader-x-detail-column {
+  box-sizing: border-box !important;
+  flex-basis: min(var(--adhd-site-width), calc(100vw - 360px)) !important;
+  inline-size: min(var(--adhd-site-width), calc(100vw - 360px)) !important;
+  max-inline-size: min(var(--adhd-site-width), calc(100vw - 360px)) !important;
+  min-inline-size: 0 !important;
+}
+
+:root.adhd-reader-enabled[data-adhd-site="x"][data-adhd-x-view="post-detail"] .adhd-reader-x-detail-sidebar {
+  display: none !important;
 }
 
 :root.adhd-reader-enabled .adhd-reader-auto-bold {

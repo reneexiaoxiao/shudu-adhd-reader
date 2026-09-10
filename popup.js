@@ -32,9 +32,7 @@
     "ai.candobear.com",
     "m.okjike.com",
     "web.okjike.com",
-    "okjike.com",
-    "x.com",
-    "twitter.com"
+    "okjike.com"
   ]);
   const ids = ["enabled", "contentWidth", "fontFamily", "fontSize", "lineHeight", "paragraphGap", "boldEnabled", "highlightEnabled", "multiColorEnabled", "emphasisDensity", "focusEnabled"];
   let settings = { ...DEFAULTS };
@@ -140,8 +138,9 @@
   function pageInfo(tab) {
     try {
       const url = new URL(tab?.url || "");
-      const automatic = AUTO_HOSTS.has(url.hostname) || url.hostname.endsWith(".x.com") || url.hostname.endsWith(".twitter.com");
-      return { automatic, injectable: url.protocol === "http:" || url.protocol === "https:" };
+      const isX = url.hostname === "x.com" || url.hostname.endsWith(".x.com") || url.hostname === "twitter.com" || url.hostname.endsWith(".twitter.com");
+      const automatic = AUTO_HOSTS.has(url.hostname);
+      return { automatic, injectable: !isX && (url.protocol === "http:" || url.protocol === "https:") };
     } catch (_error) {
       return { automatic: false, injectable: false };
     }
@@ -163,11 +162,19 @@
       const response = await sendStatus(tab);
       activePageState.connected = true;
       activePageState.siteLabel = response?.siteLabel || "当前网页";
+      activePageState.translationOnly = Boolean(response?.translationOnly);
       const countText = response?.contentCount > 1 ? `，识别到 ${response.contentCount} 条正文` : "";
-      setStatus(response?.articleFound ? `已应用：${activePageState.siteLabel}${countText}` : `${activePageState.siteLabel}：暂未识别到正文`, response?.articleFound ? "ok" : "warn");
+      setStatus(
+        activePageState.translationOnly
+          ? "普通英文网页：仅译读，保留原网页排版"
+          : response?.articleFound
+            ? `已应用：${activePageState.siteLabel}${countText}`
+            : `${activePageState.siteLabel}：暂未识别到正文`,
+        activePageState.translationOnly || response?.articleFound ? "ok" : "warn"
+      );
     } catch (_error) {
       activePageState.connected = false;
-      setStatus(activePageState.automatic ? "请刷新页面，或点击「重新分析」。" : "可点击「应用当前页面」临时启用舒读。", "warn");
+      setStatus(activePageState.automatic ? "请刷新页面，或点击「重新分析」。" : "普通网页可直接开启译读，原网页排版保持不变。", "warn");
     }
     renderPageAction();
   }
@@ -249,10 +256,18 @@
         ...activePageState,
         ...info,
         connected: true,
-        siteLabel: response?.siteLabel || "普通文章页"
+        siteLabel: response?.siteLabel || "普通文章页",
+        translationOnly: Boolean(response?.translationOnly)
       };
       const countText = response?.contentCount > 1 ? `，识别到 ${response.contentCount} 条正文` : "";
-      setStatus(response?.ok ? `已应用：${activePageState.siteLabel}${countText}` : "没有识别到适合重排的正文", response?.ok ? "ok" : "warn");
+      setStatus(
+        activePageState.translationOnly
+          ? "普通英文网页：仅译读，保留原网页排版"
+          : response?.ok
+            ? `已应用：${activePageState.siteLabel}${countText}`
+            : "没有识别到适合重排的正文",
+        activePageState.translationOnly || response?.ok ? "ok" : "warn"
+      );
     } catch (_error) {
       setStatus("应用失败：该页面可能限制扩展脚本。", "warn");
     } finally {
@@ -326,7 +341,9 @@
       const page = await translationPageStatus();
       translationAutoEnabled = Boolean(page?.autoEnabled);
       setTranslationBusy(false);
-      if (page?.count) {
+      if (page?.lastAction === "error") {
+        setTranslationStatus(page.lastError || "译读失败，请重试", "error");
+      } else if (page?.count) {
         setTranslationStatus(`${translationAutoEnabled ? "滚动译读已开启" : "本页已有译文"} · ${page.count} 段`, "ok");
       } else if (translationAutoEnabled && page?.candidateCount === 0) {
         setTranslationStatus("滚动译读已开启，但当前屏未识别到英文正文；请向下滚动或重新分析页面", "error");
@@ -369,11 +386,14 @@
           ? "已开启，但当前屏未识别到英文正文；请向下滚动或重新分析页面"
           : response.action === "auto-started" && response.missingCount
             ? `已开启 · 新增 ${response.count || 0} 段，仍有 ${response.missingCount} 段未返回`
-            : response.action === "auto-started"
-              ? `滚动译读已开启${response.count ? ` · 新增 ${response.count} 段` : " · 当前屏无需重复翻译"}`
+            : response.action === "auto-started" && response.processing
+              ? `滚动译读已开启 · 正在翻译当前屏前 ${Math.min(response.candidateCount || 0, 3)} 段`
+              : response.action === "auto-started"
+                ? `滚动译读已开启${response.count ? ` · 新增 ${response.count} 段` : " · 当前屏无需重复翻译"}`
           : "滚动译读已暂停",
         response.action === "auto-started-empty" || response.missingCount ? "error" : started ? "ok" : "normal"
       );
+      if (response.processing) window.setTimeout(() => { void loadTranslationPanel(); }, 1400);
     } catch (error) {
       setTranslationStatus(error.message || "译读失败", "error");
       if (/API Key|配置/.test(error.message || "")) document.querySelector(".api-settings").open = true;

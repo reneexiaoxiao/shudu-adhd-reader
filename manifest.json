@@ -1,24 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "舒读 · ADHD 网页阅读器",
-  "version": "0.4.5",
-  "description": "优化公众号、AI 内参、即刻、X/Twitter 与普通文章页，并提供 ADHD 友好的分级智能译读。",
-  "permissions": ["storage", "activeTab", "scripting"],
-  "host_permissions": [
-    "https://mp.weixin.qq.com/*",
-    "https://m.okjike.com/*",
-    "https://web.okjike.com/*",
-    "https://okjike.com/*",
-    "https://x.com/*",
-    "https://twitter.com/*",
-    "https://ai.candobear.com/*",
-    "https://open.bigmodel.cn/*"
-  ],
-  "background": {
-    "service_worker": "background.js"
-  },
+  "name": "舒读 · 阅读与收藏",
+  "version": "0.7.0",
+  "description": "把 ADHD 友好的网页阅读、智能译读、划线批注与知识收藏放进一个入口。",
+  "permissions": ["activeTab", "alarms", "contextMenus", "downloads", "notifications", "scripting", "storage"],
+  "host_permissions": ["http://127.0.0.1:8765/*", "http://*/*", "https://*/*"],
+  "background": { "service_worker": "unified-worker.js" },
   "action": {
-    "default_title": "舒读",
+    "default_title": "舒读 · 阅读与收藏",
     "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
@@ -33,15 +22,40 @@
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
+  "commands": {
+    "toggle-translation": {
+      "suggested_key": { "default": "Alt+Shift+F", "mac": "Alt+Shift+F" },
+      "description": "开启或暂停滚动译读"
+    },
+    "quick-save-page": {
+      "suggested_key": { "default": "Alt+Shift+S", "mac": "Alt+Shift+S" },
+      "description": "快速收藏当前网页"
+    },
+    "quick-save-selection": {
+      "suggested_key": { "default": "Alt+Shift+X", "mac": "Alt+Shift+X" },
+      "description": "收藏当前划线"
+    }
+  },
   "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": [
+        "collector/content-blocks.js",
+        "collector/selection-context.js",
+        "collector/selection-toolbar.js",
+        "collector/annotations.js",
+        "collector/feed-item.js",
+        "collector/tencent-meeting.js",
+        "collector/content.js"
+      ],
+      "run_at": "document_idle"
+    },
     {
       "matches": [
         "https://mp.weixin.qq.com/*",
         "https://m.okjike.com/*",
         "https://web.okjike.com/*",
         "https://okjike.com/*",
-        "https://x.com/*",
-        "https://twitter.com/*",
         "https://ai.candobear.com/*"
       ],
       "css": ["reader.css", "translation.css"],
@@ -49,19 +63,7 @@
       "run_at": "document_idle"
     }
   ],
-  "commands": {
-    "toggle-translation": {
-      "suggested_key": {
-        "default": "Alt+Shift+F",
-        "mac": "Alt+Shift+F"
-      },
-      "description": "开启或暂停滚动译读"
-    }
-  },
   "web_accessible_resources": [
-    {
-      "resources": ["fonts/*"],
-      "matches": ["<all_urls>"]
-    }
+    { "resources": ["fonts/*"], "matches": ["<all_urls>"] }
   ]
 }

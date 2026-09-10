@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const CONTENT_VERSION = "0.4.5";
+  const CONTENT_VERSION = "0.5.1";
   if (globalThis.__SHUDU_READER_CONTENT_VERSION__ === CONTENT_VERSION) return;
   if (globalThis.__SHUDU_READER_LOADED__ && !globalThis.__SHUDU_READER_CONTENT_VERSION__) return;
   const previousCleanup = globalThis.__SHUDU_READER_CLEANUP__;
@@ -44,7 +44,7 @@
     neican: "AI 内参",
     generic: "普通文章页"
   };
-  const SITE_WIDTH_CAPS = { wechat: 2400, jike: 1400, x: 840, neican: 1800, generic: 1100 };
+  const SITE_WIDTH_CAPS = { wechat: 2400, jike: 1400, x: 960, neican: 1800, generic: 1100 };
   const GENERIC_ARTICLE_SELECTOR = [
     "article",
     "[itemprop='articleBody']",
@@ -61,7 +61,7 @@
   ].join(", ");
   const GENERIC_DISCOVERY_SELECTOR = `${GENERIC_ARTICLE_SELECTOR}, main, [role='main']`;
   const FONT_TARGET_SELECTOR = "p, section, div, span, strong, em, blockquote, ul, ol, li, a, h1, h2, h3, h4, h5, h6";
-  const MUTATION_IGNORE_SELECTOR = "#renee-selection-toolbar-host, #renee-feed-toolbar-host, [data-adhd-reader-ui='true'], [data-shudu-translation], [data-shudu-translation-toast]";
+  const MUTATION_IGNORE_SELECTOR = "#shudu-selection-toolbar-host, #shudu-feed-toolbar-host, #shudu-annotation-layer-host, [data-adhd-reader-ui='true'], [data-shudu-translation], [data-shudu-translation-toast], [data-shudu-translation-anchor]";
   const FONT_STACKS = Object.freeze({
     torch: '"Shudu Sino Torch", "Sino-Torch", "中华薪火体", "PingFang SC", "Hiragino Sans GB", system-ui, sans-serif',
     heritage: '"Shudu Sino Torch", "Sino-Torch", "中华薪火体", "PingFang SC", "Hiragino Sans GB", system-ui, sans-serif',
@@ -316,10 +316,14 @@
     };
   }
 
+  function isXPostDetailRoute() {
+    return /(?:^|\/)status(?:\/|$)/.test(location.pathname) || /^\/i\/article(?:\/|$)/.test(location.pathname);
+  }
+
   function discoverX() {
     const main = document.querySelector("main, [role='main']");
-    document.querySelectorAll(".adhd-reader-x-hidden, .adhd-reader-x-nav, .adhd-reader-x-lane").forEach((element) => {
-      element.classList.remove("adhd-reader-x-hidden", "adhd-reader-x-nav", "adhd-reader-x-lane");
+    document.querySelectorAll(".adhd-reader-x-detail-column, .adhd-reader-x-detail-sidebar").forEach((element) => {
+      element.classList.remove("adhd-reader-x-detail-column", "adhd-reader-x-detail-sidebar");
     });
     const outerArticles = main
       ? [...main.querySelectorAll("article")].filter((article) => !article.parentElement?.closest("article"))
@@ -349,30 +353,19 @@
           .slice(0, 2);
       }
       contents.push(...candidates);
-
-      let lane = article.parentElement;
-      while (lane && lane !== main) {
-        lane.classList.add("adhd-reader-x-lane");
-        lane = lane.parentElement;
-      }
     });
 
-    if (main) {
-      const viewportAllowsExpansion = innerWidth >= 1200;
-      if (viewportAllowsExpansion) {
-        document.querySelectorAll("aside").forEach((aside) => {
-          if (!main.contains(aside)) aside.classList.add("adhd-reader-x-hidden");
-        });
-        document.querySelectorAll("nav").forEach((navigation) => {
-          if (!main.contains(navigation)) navigation.classList.add("adhd-reader-x-nav");
-        });
-      }
+    const postDetail = isXPostDetailRoute();
+    if (postDetail) {
+      main?.querySelector("[data-testid='primaryColumn']")?.classList.add("adhd-reader-x-detail-column");
+      main?.querySelector("[data-testid='sidebarColumn']")?.classList.add("adhd-reader-x-detail-sidebar");
     }
 
     return {
       site: "x",
-      shells: uniqueElements([main]),
-      surfaces: uniqueElements(outerArticles),
+      view: postDetail ? "post-detail" : "feed",
+      shells: [],
+      surfaces: [],
       contents: uniqueElements(contents)
     };
   }
@@ -445,13 +438,9 @@
     });
   }
 
-  function syncJikeDesktopColumns(context) {
+  function clearLegacyJikeDesktopColumns() {
     document.querySelectorAll(".adhd-reader-jike-columns").forEach((element) => {
       element.classList.remove("adhd-reader-jike-columns");
-    });
-    if (context.site !== "jike" || context.view !== "desktop-detail") return;
-    context.contents.forEach((content) => {
-      content.classList.toggle("adhd-reader-jike-columns", meaningfulText(content).length >= 520);
     });
   }
 
@@ -580,8 +569,15 @@
     currentContext.contents.forEach((content) => {
       content.querySelectorAll("img").forEach((image) => {
         const classify = () => {
-          const renderedWidth = image.getBoundingClientRect().width;
-          const isLarge = image.naturalWidth >= 700 && renderedWidth >= 560;
+          const renderedBox = image.getBoundingClientRect();
+          // 微信贴图常被作者按 559px 左右的移动端宽度写死。只看当前
+          // 渲染宽度会把这类 1080px 原图漏掉，导致宽屏正文已经展开，
+          // 贴图却仍缩在中间。这里用原图尺寸确认清晰度，再以较低的
+          // 可见尺寸门槛排除头像、图标和装饰线。
+          const isLarge = image.naturalWidth >= 700 &&
+            image.naturalHeight >= 180 &&
+            renderedBox.width >= 320 &&
+            renderedBox.height >= 120;
           image.classList.toggle("adhd-reader-large-media", isLarge);
           if (isLarge) {
             if (!originalMediaStyles.has(image)) {
@@ -600,23 +596,58 @@
           }
         };
         if (image.complete) classify();
-        else if (!pendingMediaLoads.has(image)) {
+        // 微信会先加载 1x1 占位图，再把 src 换成 data-src 中的真实图。
+        // 即使当前已经 complete，也要监听下一次 load，避免永久保留占位
+        // 尺寸的判断结果。
+        if (!pendingMediaLoads.has(image)) {
           pendingMediaLoads.add(image);
-          image.addEventListener("load", classify, { once: true });
+          image.addEventListener("load", () => {
+            pendingMediaLoads.delete(image);
+            classify();
+          }, { once: true });
         }
+      });
+    });
+  }
+
+  function expandWechatTextBlocks(settings) {
+    const className = "adhd-reader-fluid-block";
+    if (!settings.enabled || currentContext.site !== "wechat") {
+      document.querySelectorAll(`.${className}`).forEach((element) => element.classList.remove(className));
+      return;
+    }
+    currentContext.contents.forEach((content) => {
+      content.querySelectorAll("section, div, p, blockquote, h1, h2, h3, h4, h5, h6").forEach((element) => {
+        // Release desktop-sized fixed blocks, not small decorations or grid/flex cards.
+        const style = getComputedStyle(element);
+        const parentStyle = getComputedStyle(element.parentElement);
+        const fixedSize = [element.style.width, element.style.maxWidth,
+          element.style.inlineSize, element.style.maxInlineSize, style.maxWidth]
+          .some((value) => /^\d+(?:\.\d+)?px$/.test(value) && Number.parseFloat(value) >= 320);
+        const normalFlow = ["block", "flow-root"].includes(style.display) &&
+          ["static", "relative"].includes(style.position) && style.float === "none" &&
+          !/flex|grid/.test(parentStyle.display) &&
+          !element.closest("table, figure, [contenteditable='true']");
+        const isBodyBlock = hasMeaningfulText(element) || Boolean(element.querySelector("img, video"));
+        element.classList.toggle(className, fixedSize && normalFlow && isBodyBlock);
       });
     });
   }
 
   function applyLayout(settings) {
     currentContext = discoverContext();
-    syncTargetClasses(currentContext);
-    syncJikeDesktopColumns(currentContext);
+    const layoutEnabled = settings.enabled && currentContext.site !== "generic";
+    syncTargetClasses(layoutEnabled
+      ? currentContext
+      : { ...currentContext, shells: [], surfaces: [], contents: [] });
+    clearLegacyJikeDesktopColumns();
     const root = document.documentElement;
-    root.classList.toggle(ROOT_CLASS, settings.enabled);
-    root.classList.toggle("adhd-reader-focus", settings.enabled && settings.focusEnabled);
+    root.classList.toggle(ROOT_CLASS, layoutEnabled);
+    root.classList.toggle("adhd-reader-focus", layoutEnabled && settings.focusEnabled);
+    root.dataset.adhdMode = currentContext.site === "generic" ? "translation-only" : "reading";
     root.dataset.adhdSite = currentContext.site;
     root.dataset.adhdJikeView = currentContext.site === "jike" ? currentContext.view || "unknown" : "none";
+    root.dataset.adhdXView = currentContext.site === "x" ? currentContext.view || "feed" : "none";
     root.dataset.adhdScript = dominantContentScript();
     root.dataset.adhdFont = settings.fontFamily;
     root.dataset.adhdMarker = settings.markerColor;
@@ -627,9 +658,11 @@
     root.style.setProperty("--adhd-font-size", `${settings.fontSize}px`);
     root.style.setProperty("--adhd-line-height", String(settings.lineHeight));
     root.style.setProperty("--adhd-paragraph-gap", `${settings.paragraphGap}em`);
-    applyForcedFont(settings);
-    applyTypographyHierarchy(settings);
-    applyMediaSizing(settings);
+    const effectiveSettings = layoutEnabled ? settings : { ...settings, enabled: false };
+    expandWechatTextBlocks(effectiveSettings);
+    applyForcedFont(effectiveSettings);
+    applyTypographyHierarchy(effectiveSettings);
+    applyMediaSizing(effectiveSettings);
   }
 
   function isVisuallyPlain(element) {
@@ -642,7 +675,7 @@
   }
 
   function compactArticleSpacing() {
-    if (!currentSettings.enabled || !["wechat", "generic"].includes(currentContext.site)) return;
+    if (!currentSettings.enabled || currentContext.site !== "wechat") return;
     currentContext.contents.forEach((content) => {
       const candidates = [...content.querySelectorAll("p, section, div")];
       candidates.forEach((element) => {
@@ -946,7 +979,7 @@
 
   function processContent(settings) {
     clearNativeEmphasis();
-    if (!settings.enabled || (!settings.boldEnabled && !settings.highlightEnabled)) {
+    if (currentContext.site === "generic" || !settings.enabled || (!settings.boldEnabled && !settings.highlightEnabled)) {
       document.documentElement.dataset.adhdEmphasisMode = "off";
       return;
     }
@@ -1003,7 +1036,8 @@
         ok: currentContext.contents.length > 0,
         site: currentContext.site,
         siteLabel: SITE_LABELS[currentContext.site],
-        contentCount: currentContext.contents.length
+        contentCount: currentContext.contents.length,
+        translationOnly: currentContext.site === "generic"
       });
     }
     if (message?.type === "ADHD_READER_STATUS") {
@@ -1014,6 +1048,7 @@
         site: currentContext.site,
         siteLabel: SITE_LABELS[currentContext.site],
         contentCount: currentContext.contents.length,
+        translationOnly: currentContext.site === "generic",
         settings: currentSettings
       });
     }
@@ -1027,6 +1062,7 @@
   }
 
   function mutationsRequireRefresh(records) {
+    if (currentContext.site === "generic") return false;
     return records.some((record) => {
       if (mutationNodeIsIgnored(record.target)) return false;
       if (

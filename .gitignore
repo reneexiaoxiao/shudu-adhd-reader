@@ -1,5 +1,14 @@
 .DS_Store
 .codex/
+node_modules/
+.env*
+*.key
+*.pem
+*.zip
+*.log
 fonts/*.ttf
 fonts/*.otf
-*.zip
+fonts/*.woff*
+private/
+backups/
+browser-profile/

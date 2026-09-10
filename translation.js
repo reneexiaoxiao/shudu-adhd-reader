@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const TRANSLATION_VERSION = "0.4.5";
+  const TRANSLATION_VERSION = "0.5.0";
   if (globalThis.__SHUDU_TRANSLATION_VERSION__ === TRANSLATION_VERSION) return;
   try { globalThis.__SHUDU_TRANSLATION_CLEANUP__?.(); } catch {}
   globalThis.__SHUDU_TRANSLATION_VERSION__ = TRANSLATION_VERSION;
@@ -14,6 +14,7 @@
   const LOOSE_INLINE_SELECTOR = "a, span, strong, b, em, i, small, mark";
   const MAX_BLOCKS = 24;
   const MAX_CHARACTERS = 32000;
+  const MAX_REQUEST_BLOCKS = 3;
   const VIEWPORT_BUFFER = 420;
   const AUTO_DELAY = 560;
   const nodesById = new Map();
@@ -88,7 +89,7 @@
 
   function sourceText(element) {
     const clone = element.cloneNode(true);
-    clone.querySelectorAll("[data-shudu-translation], [data-shudu-translation-toast]").forEach((node) => node.remove());
+    clone.querySelectorAll("[data-shudu-translation], [data-shudu-translation-toast], [data-adhd-reader-ui='true']").forEach((node) => node.remove());
     return core.normalizeText(clone.innerText || clone.textContent || "");
   }
 
@@ -211,10 +212,14 @@
     }
     entries.push(...collectLooseTextBlocks(roots));
     const limited = [];
+    const seenSourceTexts = new Set();
     let characterCount = 0;
     [...new Map(entries.map((entry) => [entry.id, entry])).values()]
       .sort((left, right) => left.top - right.top)
       .some((entry) => {
+        const textKey = core.normalizeText(entry.text).toLocaleLowerCase("en-US");
+        if (seenSourceTexts.has(textKey)) return false;
+        seenSourceTexts.add(textKey);
         if (limited.length >= MAX_BLOCKS || characterCount + entry.text.length > MAX_CHARACTERS) return true;
         limited.push(entry);
         characterCount += entry.text.length;
@@ -334,7 +339,7 @@
     mutationObserver = new MutationObserver((records) => {
       const externalAddition = records.some((record) => [...record.addedNodes].some((node) => {
         const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
-        return !element?.closest?.("[data-shudu-translation], [data-shudu-translation-toast], [data-shudu-translation-anchor]");
+        return !element?.closest?.("[data-shudu-translation], [data-shudu-translation-toast], [data-shudu-translation-anchor], [data-adhd-reader-ui='true']");
       }));
       if (externalAddition) schedule();
     });
@@ -384,7 +389,9 @@
     }
     translationsHidden = false;
     translated.forEach((entry) => { entry.translation.hidden = false; });
-    const pending = entries.filter((entry) => !entry.translation);
+    const untranslated = entries.filter((entry) => !entry.translation);
+    const pending = untranslated.slice(0, MAX_REQUEST_BLOCKS);
+    const hasMore = untranslated.length > pending.length;
     busy = true;
     toast(`正在翻译新进入阅读区的 ${pending.length} 段…`, "working", true);
     try {
@@ -414,6 +421,7 @@
       missingCount ? "error" : "normal", missingCount > 0);
       lastAction = missingCount ? "incomplete" : "translated";
       lastError = missingCount ? `${missingCount} 段未返回` : "";
+      if (autoEnabled && hasMore && done > 0) schedule(100);
       return { action: "translated", count: done, missingCount, cachedCount: cached, autoEnabled };
     } catch (error) {
       toast(error.message || "翻译失败", "error", true);
@@ -429,7 +437,7 @@
     }
   }
 
-  async function toggleAuto() {
+  function toggleAuto() {
     if (autoEnabled) {
       stopAuto();
       toast("滚动译读已暂停");
@@ -438,23 +446,22 @@
     autoEnabled = true;
     translationsHidden = false;
     startAuto();
-    toast("滚动译读已开启；继续往下读即可", "working");
-    const result = await translateVisible({ toggleIfComplete: false, quiet: true });
-    if (["error", "context-stopped"].includes(result.action)) {
-      stopAuto();
-      return { ...result, autoEnabled: false };
-    }
-    if (result.action === "empty") {
+    const candidateCount = collectVisibleBlocks().filter((entry) => !entry.translation).length;
+    if (!candidateCount) {
       toast("滚动译读已开启，但当前屏未识别到英文正文；请向下滚动或重新分析页面", "error", true);
       return { action: "auto-started-empty", outcome: "empty", autoEnabled: true, count: 0, candidateCount: 0 };
     }
+    toast(`滚动译读已开启 · 正在翻译当前屏前 ${Math.min(candidateCount, MAX_REQUEST_BLOCKS)} 段`, "working", true);
+    void translateVisible({ toggleIfComplete: false, quiet: true }).then((result) => {
+      if (["error", "context-stopped"].includes(result.action)) stopAuto();
+    });
     return {
       action: "auto-started",
-      outcome: result.action,
+      outcome: "processing",
+      processing: true,
       autoEnabled: true,
-      count: Number(result.count || 0),
-      missingCount: Number(result.missingCount || 0),
-      cachedCount: Number(result.cachedCount || 0)
+      count: 0,
+      candidateCount
     };
   }
 
@@ -493,7 +500,7 @@
           : message.action === "status"
             ? Promise.resolve(status())
             : Promise.reject(new Error("未知的译读操作"));
-    task.then(
+    Promise.resolve(task).then(
       (result) => sendResponse({ ok: !["error", "context-stopped"].includes(result.action), ...result }),
       (error) => sendResponse({ ok: false, action: "error", error: error.message || "译读操作失败" })
     );

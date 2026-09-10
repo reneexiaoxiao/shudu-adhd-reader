@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>舒读 · 收藏</title>
+    <link rel="stylesheet" href="popup.css" />
+    <link rel="stylesheet" href="../ui-theme.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <div class="eyebrow">我的知识库</div>
+          <h1>收藏与消化</h1>
+        </div>
+        <button id="dashboard" class="icon-button" title="打开 Obsidian" aria-label="打开 Obsidian">↗</button>
+      </header>
+
+      <section id="loading" class="status">正在读取当前页面…</section>
+
+      <section id="form" hidden>
+        <div class="source-line">
+          <span id="source" class="source-badge"></span>
+          <span id="mode" class="mode-label"></span>
+        </div>
+        <h2 id="title"></h2>
+        <blockquote id="selection" hidden></blockquote>
+
+        <div class="field-grid">
+          <label>
+            <span>简单分类</span>
+            <select id="category"></select>
+          </label>
+          <label>
+            <span>建议消化到</span>
+            <select id="digest-target"></select>
+          </label>
+        </div>
+
+        <section id="destination-creator" class="destination-creator" hidden>
+          <div class="creator-title">新建消化库</div>
+          <div class="creator-grid">
+            <label>
+              <span>名称</span>
+              <input id="destination-name" type="text" maxlength="40" placeholder="例如：组织学习" />
+            </label>
+            <label>
+              <span>归到</span>
+              <select id="destination-parent">
+                <option value="concept">概念模型</option>
+                <option value="method">方法工具</option>
+                <option value="research">研究洞察</option>
+                <option value="case">案例与证据</option>
+                <option value="project">项目素材</option>
+              </select>
+            </label>
+          </div>
+          <div class="creator-actions">
+            <button id="cancel-destination" class="text-button" type="button">取消</button>
+            <button id="create-destination" class="compact-button" type="button">创建并选中</button>
+          </div>
+          <p id="destination-status" class="creator-status" hidden></p>
+        </section>
+
+        <label class="note-field">
+          <span>我的备注</span>
+          <textarea id="note" rows="3" placeholder="可留空"></textarea>
+        </label>
+
+        <div class="toggles">
+          <label><input id="save-images" type="checkbox" checked /> 保存原图 <span id="image-count"></span></label>
+          <label><input id="enrich" type="checkbox" checked /> AI 辅助消化</label>
+          <label class="personal-toggle" title="结合本机配置的阅读偏好，分析内容的使用方式">
+            <input id="personalize" type="checkbox" /> 分析和我的关系
+          </label>
+          <label class="concept-toggle" title="保存概念、证据与关系到本机知识库">
+            <input id="concept-map" type="checkbox" /> 丰富概念地图
+          </label>
+        </div>
+
+        <button id="save" class="primary-button">收藏</button>
+        <div id="result" class="result" hidden></div>
+      </section>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>
