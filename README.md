@@ -37,7 +37,7 @@
 
 ## 安装
 
-1. 下载 Releases 中的扩展包并解压，或克隆仓库。
+1. 下载 [Releases](https://github.com/reneexiaoxiao/shudu-adhd-reader/releases) 中的扩展包并解压，或克隆仓库。
 2. 打开浏览器扩展管理页 `chrome://extensions/`，启用开发者模式。
 3. 选择“加载已解压的扩展程序”，选择包含 `manifest.json` 的目录。
 4. 刷新已打开的文章页。更新时替换扩展文件，在扩展管理页重新加载后刷新网页。
@@ -73,5 +73,7 @@ node --test tests/*.test.mjs collector/*.test.mjs
 测试覆盖一键划线＋收藏、失败重试去重、图片选择、译文隔离、批注恢复和浮条避让等。单元测试不代替真实站点回归；动态网页更新仍可能影响正文识别。
 
 ## 隐私与贡献
+
+开发和提交 PR 请先阅读 [贡献指南](CONTRIBUTING.md)。通用功能在公共代码中维护，个人配置与知识库不进入本仓库。
 
 参见 [隐私说明](PRIVACY.md) 和 [安全说明](SECURITY.md)。Issue 请提供脱敏截图、网址类型和复现步骤，不要提交 API Key、浏览器配置备份、私人文章或知识库。
